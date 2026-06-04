@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vulcan Quanta — AI-Powered Quantity Surveying</title>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  
+  <template id="__bundler_thumbnail" data-bg-color="#0F172A">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background -->
+      <rect width="1200" height="800" fill="#0F172A"/>
+      <!-- Logo wordmark -->
+      <text x="600" y="340" font-family="serif" font-size="80" font-weight="700" fill="#FAFAF9" text-anchor="middle" letter-spacing="-2">Vulcan Quanta</text>
+      <!-- Accent underline -->
+      <rect x="480" y="365" width="240" height="4" rx="2" fill="#2563EB"/>
+      <!-- Tagline -->
+      <text x="600" y="430" font-family="sans-serif" font-size="28" fill="#6B7280" text-anchor="middle">AI-Powered Quantity Surveying</text>
+      <!-- BoQ table preview lines -->
+      <rect x="300" y="490" width="600" height="2" fill="#1F2937"/>
+      <rect x="300" y="520" width="440" height="12" rx="3" fill="#1F2937" opacity="0.8"/>
+      <rect x="760" y="520" width="140" height="12" rx="3" fill="#2563EB" opacity="0.7"/>
+      <rect x="300" y="550" width="380" height="10" rx="3" fill="#1F2937" opacity="0.5"/>
+      <rect x="300" y="575" width="420" height="10" rx="3" fill="#1F2937" opacity="0.4"/>
+      <rect x="300" y="600" width="600" height="2" fill="#1F2937"/>
+    </svg>
+  </template>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --dark-slate: #0F172A;
+      --off-white: #FAFAF9;
+      --light-gray: #F3F4F6;
+      --border-gray: #E5E7EB;
+      --text-primary: #111827;
+      --text-secondary: #6B7280;
+      --accent-amber: #F97316;
+      --accent-blue: #2563EB;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --error: #EF4444;
+      
+      --font-display: 'Playfair Display', serif;
+      --font-body: 'Inter', sans-serif;
+      
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--text-primary);
+      background: var(--off-white);
+      line-height: 1.6;
+    }
+
+    /* Layout & Grid */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header / Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--off-white);
+      border-bottom: 1px solid var(--border-gray);
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 72px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--dark-slate);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .nav-center a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .nav-center a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-right {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--accent-color, var(--accent-amber));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(249, 115, 22, 0.3);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-gray);
+    }
+
+    .btn-secondary:hover {
+      background: var(--light-gray);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .btn-ghost:hover {
+      color: var(--text-primary);
+    }
+
+    /* Typography */
+    h1 {
+      font-family: var(--font-display);
+      font-size: 72px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+
+    h4 {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .text-small {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Spacing */
+    .section {
+      padding: 120px 0;
+    }
+
+    .section-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 120px 0 80px;
+      background: linear-gradient(135deg, #FAFAF9 0%, #F3F4F6 100%);
+    }
+
+    .hero-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .hero-text h1 {
+      color: var(--dark-slate);
+      margin-bottom: 24px;
+    }
+
+    .hero-subhead {
+      font-size: 20px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-large {
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .hero-visual {
+      background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+      border-radius: 12px;
+      height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-visual-content {
+      text-align: center;
+      animation: fadeInScale 0.8s ease-out;
+    }
+
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .before-after {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .before-after-item {
+      text-align: center;
+    }
+
+    .before-after-item svg {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+
+    .before-after-arrow {
+      font-size: 28px;
+      color: var(--accent-color, var(--accent-amber));
+      font-weight: 700;
+    }
+
+    /* Social Proof */
+    .social-proof {
+      background: var(--dark-slate);
+      color: var(--off-white);
+      padding: 60px 0;
+      text-align: center;
+    }
+
+    .social-proof p {
+      color: var(--off-white);
+      font-size: 18px;
+      margin: 0;
+    }
+
+    /* Features Grid */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+      margin-top: 60px;
+    }
+
+    .feature-card {
+      padding: 40px;
+      background: white;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      transition: var(--transition);
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent-color, var(--accent-amber));
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--light-gray);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: var(--accent-color, var(--accent-amber));
+    }
+
+    .feature-card h4 {
+      color: var(--dark-slate);
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      font-size: 15px;
+      margin: 0;
+    }
+
+    /* How It Works */
+    .how-it-works {
+      background: white;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      margin-top: 60px;
+    }
+
+    .step {
+      text-align: center;
+    }
+
+    .step-number {
+      width: 56px;
+      height: 56px;
+      background: var(--accent-color, var(--accent-amber));
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 auto 24px;
+    }
+
+    .step h4 {
+      color: var(--dark-slate);
+    }
+
+    /* ROI Section */
+    .roi {
+      background: linear-gradient(135deg, var(--dark-slate) 0%, #1F2937 100%);
+      color: var(--off-white);
+    }
+
+    .roi h2 {
+      color: var(--off-white);
+      margin-bottom: 60px;
+    }
+
+    .roi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+
+    .roi-stat {
+      text-align: center;
+    }
+
+    .roi-number {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 700;
+      color: var(--accent-color, var(--accent-amber));
+      margin-bottom: 8px;
+    }
+
+    .roi-label {
+      font-size: 14px;
+      color: rgba(250, 250, 249, 0.7);
+    }
+
+    .roi-explanation {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 12px;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    /* Trust Section */
+    .trust {
+      background: white;
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+      margin-top: 40px;
+    }
+
+    .trust-points {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .trust-point {
+      display: flex;
+      gap: 20px;
+    }
+
+    .trust-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      color: var(--success);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .trust-text h4 {
+      margin-bottom: 4px;
+    }
+
+    .trust-text p {
+      font-size: 15px;
+      margin: 0;
+    }
+
+    /* Pricing Section */
+    .pricing {
+      background: white;
+    }
+
+    .pricing-intro {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-top: 40px;
+    }
+
+    .pricing-card {
+      border: 1px solid var(--border-gray);
+      border-radius: 12px;
+      padding: 40px;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border: 2px solid var(--accent-color, var(--accent-amber));
+      box-shadow: 0 12px 48px rgba(249, 115, 22, 0.15);
+      transform: translateY(-8px);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      background: var(--accent-color, var(--accent-amber));
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .pricing-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--dark-slate);
+      margin-bottom: 8px;
+    }
+
+    .pricing-price {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--dark-slate);
+      margin-bottom: 4px;
+    }
+
+    .pricing-price-period {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .pricing-features li {
+      font-size: 15px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .pricing-features li:before {
+      content: '✓';
+      color: var(--success);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .pricing-features li.disabled {
+      opacity: 0.5;
+    }
+
+    .pricing-features li.disabled:before {
+      content: '−';
+      color: var(--text-secondary);
+    }
+
+    .pricing-card .btn {
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    /* Testimonials */
+    .testimonials {
+      background: var(--light-gray);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 32px;
+      margin-top: 40px;
+    }
+
+    .testimonial {
+      background: white;
+      padding: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-gray);
+    }
+
+    .testimonial-quote {
+      font-size: 16px;
+      font-style: italic;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      line-height: 1.8;
+    }
+
+    .testimonial-author {
+      font-weight: 600;
+      color: var(--dark-slate);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .testimonial-role {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* FAQ */
+    .faq {
+      background: white;
+    }
+
+    .faq-intro {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .accordion {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .accordion-item {
+      border-bottom: 1px solid var(--border-gray);
+      padding: 24px 0;
+    }
+
+    .accordion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      cursor: pointer;
+      user-select: none;
+      gap: 16px;
+    }
+
+    .accordion-header:hover {
+      color: var(--accent-color, var(--accent-amber));
+    }
+
+    .accordion-header h4 {
+      margin: 0;
+      flex: 1;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .accordion-toggle {
+      flex-shrink: 0;
+      font-size: 20px;
+      transition: var(--transition);
+    }
+
+    .accordion-item.open .accordion-toggle {
+      transform: rotate(45deg);
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      color: var(--text-secondary);
+    }
+
+    .accordion-item.open .accordion-content {
+      max-height: 500px;
+      padding-top: 16px;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--dark-slate);
+      color: var(--off-white);
+      padding: 60px 0 40px;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 24px;
+    }
+
+    .footer-col h4 {
+      color: var(--off-white);
+      margin-bottom: 16px;
+    }
+
+    .footer-col a {
+      display: block;
+      color: rgba(250, 250, 249, 0.7);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 12px;
+      transition: var(--transition);
+    }
+
+    .footer-col a:hover {
+      color: var(--off-white);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 40px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding-left: 24px;
+      padding-right: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: rgba(250, 250, 249, 0.7);
+    }
+
+    /* RESULTS PAGE */
+    .results-container {
+      padding: 40px 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .results-header {
+      margin-bottom: 40px;
+    }
+
+    .results-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--dark-slate);
+      margin-bottom: 8px;
+    }
+
+    .results-meta {
+      display: flex;
+      gap: 32px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .confidence-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    .confidence-label {
+      font-weight: 600;
+      color: var(--dark-slate);
+      font-size: 14px;
+    }
+
+    .confidence-meter {
+      height: 8px;
+      background: var(--light-gray);
+      border-radius: 4px;
+      width: 150px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: var(--success);
+      border-radius: 4px;
+    }
+
+    .confidence-percent {
+      font-weight: 600;
+      color: var(--dark-slate);
+      font-size: 14px;
+      min-width: 40px;
+    }
+
+    .boq-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    .boq-table thead {
+      background: var(--light-gray);
+      border-bottom: 1px solid var(--border-gray);
+    }
+
+    .boq-table th {
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      border-right: 1px solid var(--border-gray);
+    }
+
+    .boq-table th:last-child {
+      border-right: none;
+    }
+
+    .boq-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-gray);
+      border-right: 1px solid var(--border-gray);
+      font-size: 14px;
+    }
+
+    .boq-table td:last-child {
+      border-right: none;
+    }
+
+    .boq-table tbody tr:hover {
+      background: var(--light-gray);
+    }
+
+    .boq-trade-header {
+      background: #F9FAFB;
+      font-weight: 700;
+      color: var(--dark-slate);
+      border-bottom: 2px solid var(--border-gray);
+    }
+
+    .boq-subtotal {
+      background: #F3F4F6;
+      font-weight: 600;
+      color: var(--dark-slate);
+      border-bottom: 2px solid var(--border-gray);
+    }
+
+    .boq-grand-total {
+      background: var(--accent-color, var(--accent-amber));
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .flag-low {
+      background: rgba(245, 158, 11, 0.1);
+      color: #92400e;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .editable-cell {
+      position: relative;
+    }
+
+    .editable-cell input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 4px;
+      font-size: 14px;
+    }
+
+    .editable-cell input:focus {
+      outline: none;
+      background: var(--light-gray);
+      border-radius: 4px;
+      padding: 4px;
+    }
+
+    .results-controls {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .results-disclaimer {
+      background: var(--light-gray);
+      border-left: 4px solid var(--warning);
+      padding: 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    /* DASHBOARD */
+    .dashboard-wrapper {
+      display: flex;
+      min-height: 100vh;
+      background: var(--light-gray);
+    }
+
+    .dashboard-sidebar {
+      width: 240px;
+      background: white;
+      border-right: 1px solid var(--border-gray);
+      padding: 24px 0;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      padding-top: 72px;
+    }
+
+    .dashboard-main {
+      margin-left: 240px;
+      flex: 1;
+      padding: 40px 24px;
+      margin-top: 72px;
+    }
+
+    .sidebar-item {
+      padding: 12px 24px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: var(--transition);
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-item:hover {
+      background: var(--light-gray);
+      color: var(--text-primary);
+    }
+
+    .sidebar-item.active {
+      background: var(--light-gray);
+      border-left-color: var(--accent-color, var(--accent-amber));
+      color: var(--dark-slate);
+    }
+
+    .dashboard-header {
+      margin-bottom: 40px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      border: 1px solid var(--border-gray);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--dark-slate);
+    }
+
+    .projects-section {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid var(--border-gray);
+      overflow: hidden;
+    }
+
+    .projects-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border-gray);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .projects-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .project-item {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-gray);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .project-item:last-child {
+      border-bottom: none;
+    }
+
+    .project-item:hover {
+      background: var(--light-gray);
+    }
+
+    .project-info h4 {
+      margin-bottom: 4px;
+      color: var(--dark-slate);
+    }
+
+    .project-info p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .project-status {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-complete {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .status-processing {
+      background: rgba(59, 130, 246, 0.1);
+      color: #2563EB;
+    }
+
+    /* UPLOAD PAGE */
+    .upload-container {
+      padding: 60px 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border-gray);
+      border-radius: 12px;
+      padding: 80px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--light-gray);
+    }
+
+    .upload-zone:hover {
+      border-color: var(--accent-color, var(--accent-amber));
+      background: rgba(249, 115, 22, 0.05);
+    }
+
+    .upload-zone h3 {
+      margin-bottom: 8px;
+    }
+
+    .upload-zone p {
+      margin-bottom: 24px;
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .processing-indicator {
+      background: white;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      padding: 24px;
+      margin-top: 32px;
+      text-align: center;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--light-gray);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--success);
+      animation: progress 2s ease-in-out infinite;
+    }
+
+    @keyframes progress {
+      0%, 100% { width: 0%; }
+      50% { width: 100%; }
+    }
+
+    /* SIGN IN */
+    .signin-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--light-gray) 0%, var(--off-white) 100%);
+      padding: 24px;
+    }
+
+    .signin-form {
+      background: white;
+      border: 1px solid var(--border-gray);
+      border-radius: 12px;
+      padding: 48px;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .signin-form h2 {
+      margin-bottom: 8px;
+    }
+
+    .signin-form > p {
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--dark-slate);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border-gray);
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      transition: var(--transition);
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent-color, var(--accent-amber));
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    }
+
+    .form-group .btn {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .signin-links {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      font-size: 13px;
+    }
+
+    .signin-links a {
+      color: var(--accent-color, var(--accent-amber));
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* Settings */
+    .settings-wrapper {
+      display: flex;
+      min-height: 100vh;
+      background: var(--light-gray);
+    }
+
+    .settings-sidebar {
+      width: 240px;
+      background: white;
+      border-right: 1px solid var(--border-gray);
+      padding: 24px 0;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      padding-top: 72px;
+    }
+
+    .settings-main {
+      margin-left: 240px;
+      flex: 1;
+      padding: 40px 24px;
+      margin-top: 72px;
+    }
+
+    .settings-tab {
+      display: none;
+    }
+
+    .settings-tab.active {
+      display: block;
+    }
+
+    .settings-section {
+      background: white;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .settings-section h3 {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-gray);
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .settings-field {
+      margin-bottom: 24px;
+    }
+
+    .settings-field label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--dark-slate);
+    }
+
+    .settings-field input,
+    .settings-field select,
+    .settings-field textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border-gray);
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 14px;
+    }
+
+    /* PRICING PAGE */
+    .pricing-page {
+      padding: 120px 0;
+    }
+
+    .pricing-page-intro {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .pricing-page h1 {
+      margin-bottom: 24px;
+    }
+
+    .pricing-comparison-table {
+      width: 100%;
+      margin-top: 80px;
+      border-collapse: collapse;
+    }
+
+    .pricing-comparison-table thead th {
+      padding: 24px;
+      background: var(--light-gray);
+      border-bottom: 1px solid var(--border-gray);
+      text-align: left;
+      font-weight: 700;
+      border-right: 1px solid var(--border-gray);
+    }
+
+    .pricing-comparison-table thead th:first-child {
+      width: 300px;
+    }
+
+    .pricing-comparison-table td {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-gray);
+      border-right: 1px solid var(--border-gray);
+      font-size: 14px;
+    }
+
+    .pricing-comparison-table tr:hover {
+      background: var(--light-gray);
+    }
+
+    .pricing-comparison-table .feature-name {
+      font-weight: 500;
+      color: var(--dark-slate);
+    }
+
+    .pricing-comparison-table .checkmark {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .features,
+      .steps,
+      .roi-grid,
+      .pricing-cards,
+      .testimonials-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .trust-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .dashboard-sidebar,
+      .settings-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .dashboard-main,
+      .settings-main {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 48px;
+      }
+
+      h2 {
+        font-size: 32px;
+      }
+
+      .nav-center {
+        display: none;
+      }
+
+      .section {
+        padding: 60px 0;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Fade-in animations */
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in-stagger > * {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .fade-in-stagger > *:nth-child(2) {
+      animation-delay: 0.1s;
+    }
+
+    .fade-in-stagger > *:nth-child(3) {
+      animation-delay: 0.2s;
+    }
+
+    /* Scrollable tweaks */
+    [data-hidden="true"] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+
+  // ============ PAGES ============
+
+  function Header({ currentPage, onNavigate }) {
+    return (
+      <header>
+        <div className="header-content">
+          <a className="logo" onClick={() => onNavigate('landing')}>
+            Vulcan Quanta
+          </a>
+          {currentPage !== 'signin' && (
+            <>
+              <div className="nav-center">
+                <a onClick={() => onNavigate('landing')}>How it works</a>
+                <a onClick={() => onNavigate('pricing')}>Pricing</a>
+                <a onClick={() => onNavigate('landing')} style={{ opacity: 0.5 }}>Docs</a>
+              </div>
+              <div className="nav-right">
+                <button className="btn btn-ghost" onClick={() => onNavigate('signin')}>Sign in</button>
+                <button className="btn btn-primary" onClick={() => onNavigate('upload')}>Start free</button>
+              </div>
+            </>
+          )}
+        </div>
+      </header>
+    );
+  }
+
+  // ========== LANDING PAGE ==========
+  function LandingPage({ onNavigate, tweaks = {} }) {
+    const [visibleFeatures, setVisibleFeatures] = useState(new Set());
+    const [openFaqIndex, setOpenFaqIndex] = useState(null);
+
+    useEffect(() => {
+      const handleScroll = () => {
+        const elements = document.querySelectorAll('.feature-card');
+        elements.forEach((el, idx) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight * 0.8) {
+            setVisibleFeatures(prev => new Set([...prev, idx]));
+          }
+        });
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      handleScroll();
+      return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const faqs = [
+      {
+        q: 'How accurate is Vulcan?',
+        a: 'Our AI is trained on thousands of professional BoQs and architectural drawings. Current accuracy is 94% on standard UK construction projects. All output is flagged for confidence and requires human review before issue.'
+      },
+      {
+        q: 'What drawing formats does it accept?',
+        a: 'Currently PDF (both raster and vector). We support single and multi-page drawings. JPG and PNG support is coming in Q3 2026.'
+      },
+      {
+        q: 'Is my data secure?',
+        a: "All drawings are encrypted in transit and at rest. They’re deleted after 30 days unless you explicitly archive them. We never use your data for model training. Compliance with UK GDPR and ISO 27001."
+      },
+      {
+        q: 'Do I still need a qualified quantity surveyor?',
+        a: 'Vulcan replaces the tedious measurement and rate application work. A human QS still reviews every output for fitness-for-purpose and regional variations. You save 5-8 hours per job.'
+      },
+      {
+        q: 'Can I customise output format and rates?',
+        a: 'Pro and Studio plans allow custom trade breakdowns, your own branding, and regional rate overrides. Studio includes a dedicated account manager.'
+      },
+      {
+        q: 'What if accuracy is wrong on a specific item?',
+        a: 'Edit inline, recalculate, and export. The revised draft is timestamped. For systematic issues, we train the model against your feedback.'
+      }
+    ];
+
+    return (
+      <>
+        {/* Hero */}
+        <section className="hero">
+          <div className="hero-content">
+            <div className="hero-text">
+              <h1>{tweaks.heroHeadline || 'Price any job in 2 minutes, not 8 hours.'}</h1>
+              <p className="hero-subhead">
+                Vulcan reads your drawings, measures every element, and hands you a priced Bill of Quantities ready to send to your client. Built for UK builders and quantity surveyors who'd rather be on site than stuck in a spreadsheet.
+              </p>
+              <div className="hero-ctas">
+                <button className="btn btn-primary btn-large" onClick={() => onNavigate('upload')}>
+                  {tweaks.ctaLabel || 'Start free — no card required'}
+                </button>
+                <button className="btn btn-secondary btn-large" onClick={() => onNavigate('results')}>
+                  See a sample BoQ
+                </button>
+              </div>
+            </div>
+            <div className="hero-visual">
+              <div className="hero-visual-content">
+                <div className="before-after">
+                  <div className="before-after-item">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="10" y="10" width="80" height="80" fill="none" stroke="currentColor" strokeWidth="2"/>
+                      <line x1="20" y1="30" x2="80" y2="30" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+                      <line x1="20" y1="50" x2="80" y2="50" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+                      <line x1="20" y1="70" x2="80" y2="70" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+                      <circle cx="50" cy="50" r="3" fill="currentColor"/>
+                    </svg>
+                    <p className="text-small">Architectural drawing</p>
+                  </div>
+                  <div className="before-after-arrow">→</div>
+                  <div className="before-after-item">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="10" y="10" width="80" height="80" fill="none" stroke="currentColor" strokeWidth="2"/>
+                      <line x1="15" y1="25" x2="85" y2="25" stroke="currentColor" strokeWidth="1"/>
+                      <line x1="15" y1="35" x2="85" y2="35" stroke="currentColor" strokeWidth="0.5" opacity="0.6"/>
+                      <line x1="15" y1="45" x2="85" y2="45" stroke="currentColor" strokeWidth="0.5" opacity="0.6"/>
+                      <line x1="15" y1="55" x2="85" y2="55" stroke="currentColor" strokeWidth="0.5" opacity="0.6"/>
+                      <line x1="15" y1="65" x2="85" y2="65" stroke="currentColor" strokeWidth="1"/>
+                      <line x1="15" y1="80" x2="85" y2="80" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                    <p className="text-small">Priced BoQ</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Social Proof */}
+        <section className="social-proof">
+          <div className="section-inner">
+            <p>Trusted by 200+ builders and QS firms across the UK</p>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="how-it-works section">
+          <div className="section-inner">
+            <h2>Three steps to a priced Bill of Quantities</h2>
+            <div className="steps fade-in-stagger">
+              <div className="step">
+                <div className="step-number">1</div>
+                <h4>Upload your drawings</h4>
+                <p>Drag a PDF, single or multi-page, onto Vulcan. Raster or vector — we read them both.</p>
+              </div>
+              <div className="step">
+                <div className="step-number">2</div>
+                <h4>Vulcan measures and prices</h4>
+                <p>Our AI reads every wall, door, window and opening. Applies current UK material and labour rates. Roughly 2 minutes.</p>
+              </div>
+              <div className="step">
+                <div className="step-number">3</div>
+                <h4>Review, edit, export</h4>
+                <p>Inline editor. Flag items for review. Export as PDF, Excel, or share a live link with your client.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ROI Section */}
+        <section className="roi">
+          <div className="section-inner">
+            <h2>The numbers</h2>
+            <div className="roi-grid">
+              <div className="roi-stat">
+                <div className="roi-number">6-8h</div>
+                <p className="roi-label">Time saved per job</p>
+              </div>
+              <div className="roi-stat">
+                <div className="roi-number">£400</div>
+                <p className="roi-label">Typical QS daily rate</p>
+              </div>
+              <div className="roi-stat">
+                <div className="roi-number">15</div>
+                <p className="roi-label">Jobs per month (typical)</p>
+              </div>
+              <div className="roi-stat">
+                <div className="roi-number">80h</div>
+                <p className="roi-label">Hours recovered monthly</p>
+              </div>
+            </div>
+            <div className="roi-explanation">
+              <strong>The math:</strong> A freelance QS bills around £400 a day (8 hours). Vulcan saves roughly 5 hours per job. At 15 jobs a month, that's over 80 hours back — for £39. On a Studio plan at £99/month, a team of 3 could process 50+ projects, reclaiming over 250 hours and freeing you to chase more work or focus on high-confidence advisory.
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="section">
+          <div className="section-inner">
+            <h2>Core features</h2>
+            <div className="features">
+              {[
+                { icon: '📐', title: 'Automated measurement', desc: 'AI reads every dimension from your drawings — walls, openings, spans, heights.' },
+                { icon: '💷', title: 'Current UK rates', desc: 'Built-in BCIS labour and material rates, regional variations, updated quarterly.' },
+                { icon: '⚠️', title: 'Confidence flagging', desc: 'Every item scored. Low-confidence items highlighted in amber with a verify tag.' },
+                { icon: '📥', title: 'PDF & Excel export', desc: 'Professional formatting. Your branding on Pro/Studio plans. Ready to send to site.' },
+                { icon: '🏷️', title: 'Your branding', desc: 'Pro and Studio: add your logo, set company colours, customise headers/footers.' },
+                { icon: '🔄', title: 'Variation orders', desc: 'Duplicate & edit. Track additions and changes. Audit trail on every revision.' }
+              ].map((f, i) => (
+                <div
+                  key={i}
+                  className={`feature-card ${visibleFeatures.has(i) ? 'fade-in' : ''}`}
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                >
+                  <div className="feature-icon">{f.icon}</div>
+                  <h4>{f.title}</h4>
+                  <p>{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Trust Section */}
+        <section className="trust section">
+          <div className="section-inner">
+            <h2>Built for trust</h2>
+            <div className="trust-grid">
+              <div className="trust-points">
+                <div className="trust-point">
+                  <div className="trust-icon">✓</div>
+                  <div className="trust-text">
+                    <h4>You stay in control</h4>
+                    <p>Every output is a reviewable draft. You decide what goes to your client. Human approval always required.</p>
+                  </div>
+                </div>
+                <div className="trust-point">
+                  <div className="trust-icon">✓</div>
+                  <div className="trust-text">
+                    <h4>Your data stays private</h4>
+                    <p>Encrypted at rest and in transit. Drawings deleted after 30 days. Never used for model training. GDPR-compliant.</p>
+                  </div>
+                </div>
+                <div className="trust-point">
+                  <div className="trust-icon">✓</div>
+                  <div className="trust-text">
+                    <h4>RICS-aware methodology</h4>
+                    <p>Output structured to align with RICS SMM7 standard measurement rules. Professional QS review still applies.</p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ background: 'var(--light-gray)', borderRadius: '8px', padding: '40px', textAlign: 'center' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  <strong>This is a tool for professionals, not a replacement for professional judgment.</strong> Vulcan removes the busywork. Your expertise and oversight remain essential.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing */}
+        <section className="pricing section">
+          <div className="section-inner">
+            <h2 style={{ textAlign: 'center' }}>Simple, transparent pricing</h2>
+            <p style={{ textAlign: 'center', marginBottom: '60px', maxWidth: '600px', margin: '0 auto 60px' }}>
+              Start free. Scale as you grow. No long-term contracts. Cancel anytime.
+            </p>
+            <div className="pricing-cards">
+              <div className="pricing-card">
+                <div className="pricing-name">Free</div>
+                <div className="pricing-price">£0</div>
+                <div className="pricing-price-period">forever</div>
+                <ul className="pricing-features">
+                  <li>2 projects per month</li>
+                  <li>Watermarked BoQ output</li>
+                  <li>PDF export</li>
+                  <li className="disabled">Excel export</li>
+                  <li className="disabled">Custom branding</li>
+                  <li className="disabled">Priority support</li>
+                </ul>
+                <button className="btn btn-secondary">Get started</button>
+              </div>
+
+              <div className="pricing-card featured">
+                <div className="pricing-badge">Recommended</div>
+                <div className="pricing-name">Pro</div>
+                <div className="pricing-price">£39</div>
+                <div className="pricing-price-period">per month</div>
+                <ul className="pricing-features">
+                  <li>Unlimited projects</li>
+                  <li>No watermark</li>
+                  <li>PDF & Excel export</li>
+                  <li>Your branding & logo</li>
+                  <li>Custom trade sections</li>
+                  <li className="disabled">Team seats (up to 5)</li>
+                </ul>
+                <button className="btn btn-primary" onClick={() => onNavigate('upload')}>Start free trial</button>
+              </div>
+
+              <div className="pricing-card">
+                <div className="pricing-name">Studio</div>
+                <div className="pricing-price">£99</div>
+                <div className="pricing-price-period">per month</div>
+                <ul className="pricing-features">
+                  <li>Everything in Pro</li>
+                  <li>Up to 5 team seats</li>
+                  <li>White-label output</li>
+                  <li>Custom rates & rules</li>
+                  <li>Variation order templates</li>
+                  <li>Priority support</li>
+                </ul>
+                <button className="btn btn-secondary">Contact sales</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section className="testimonials section">
+          <div className="section-inner">
+            <h2 style={{ textAlign: 'center', marginBottom: '60px' }}>Trusted by builders across the UK</h2>
+            <div className="testimonials-grid">
+              <div className="testimonial">
+                <p className="testimonial-quote">"I was sceptical about AI doing QS work. But after two months, I've reclaimed about 40 hours a month. The accuracy is genuinely impressive. Every item flagged. Saves me checking everything from scratch."</p>
+                <p className="testimonial-author">James Henderson</p>
+                <p className="testimonial-role">Freelance Quantity Surveyor, Manchester</p>
+              </div>
+              <div className="testimonial">
+                <p className="testimonial-quote">"We run a 12-person building firm. BoQ work used to eat two days per project. Vulcan cuts it to 20 minutes of review. We've gone from 8 quotes a month to 20+. Game-changer for business development."</p>
+                <p className="testimonial-author">Sarah Patel</p>
+                <p className="testimonial-role">Managing Director, Patel Builders Ltd, London</p>
+              </div>
+              <div className="testimonial">
+                <p className="testimonial-quote">"The confidence flagging is brilliant. I can see which items need a closer look. The export is clean and professional. Clients don't know it's AI-generated unless I tell them."</p>
+                <p className="testimonial-author">Michael Davies</p>
+                <p className="testimonial-role">Senior QS, Turner & Associates, Birmingham</p>
+              </div>
+              <div className="testimonial">
+                <p className="testimonial-quote">"Tendering season used to be a nightmare. Fifteen drawings, fifteen BoQs, six weeks of grind. Now it's faster, more consistent, and I sleep better. Worth every penny."</p>
+                <p className="testimonial-author">Vikram Singh</p>
+                <p className="testimonial-role">Estimating Manager, Consolidated Construction, Liverpool</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="faq section">
+          <div className="section-inner">
+            <h2 style={{ textAlign: 'center', marginBottom: '60px' }}>Frequently asked questions</h2>
+            <div className="accordion">
+              {faqs.map((item, i) => (
+                <div
+                  key={i}
+                  className={`accordion-item ${openFaqIndex === i ? 'open' : ''}`}
+                >
+                  <div
+                    className="accordion-header"
+                    onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                  >
+                    <h4>{item.q}</h4>
+                    <span className="accordion-toggle">+</span>
+                  </div>
+                  <div className="accordion-content">
+                    <p style={{ margin: 0 }}>{item.a}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  // ========== RESULTS PAGE ==========
+  function ResultsPage({ onNavigate }) {
+    const [items, setItems] = useState([
+      { id: 1, trade: 'Groundworks', desc: 'Excavation & earthwork', qty: 250, unit: 'm³', rate: 8.50, flags: false },
+      { id: 2, trade: 'Groundworks', desc: 'Concrete foundation', qty: 85, unit: 'm³', rate: 95.00, flags: false },
+      { id: 3, trade: 'Brickwork', desc: 'Brickwork (stretcher)', qty: 2400, unit: 'No', rate: 0.65, flags: true },
+      { id: 4, trade: 'Brickwork', desc: 'Blockwork (common)', qty: 1850, unit: 'No', rate: 0.45, flags: false },
+      { id: 5, trade: 'Carpentry', desc: 'Timber joists 4x2"', qty: 450, unit: 'lin m', rate: 2.20, flags: false },
+      { id: 6, trade: 'Roofing', desc: 'Clay tile roof', qty: 320, unit: 'm²', rate: 38.50, flags: true },
+      { id: 7, trade: 'Plastering', desc: 'Internal plaster (float/set)', qty: 980, unit: 'm²', rate: 7.50, flags: false },
+      { id: 8, trade: 'Electrical', desc: 'Cable & conduit', qty: 1200, unit: 'lin m', rate: 3.20, flags: false },
+      { id: 9, trade: 'Plumbing', desc: 'Water pipes (15mm)', qty: 450, unit: 'lin m', rate: 5.50, flags: false },
+      { id: 10, trade: 'Finishes', desc: 'Emulsion paint', qty: 1420, unit: 'm²', rate: 2.10, flags: false },
+    ]);
+
+    const [contingency, setContingency] = useState(10);
+
+    const calculate = (qty, rate) => parseFloat((qty * rate).toFixed(2));
+
+    const subtotalByTrade = (trade) => {
+      return items
+        .filter(i => i.trade === trade)
+        .reduce((sum, i) => sum + calculate(i.qty, i.rate), 0);
+    };
+
+    const trades = ['Groundworks', 'Brickwork', 'Carpentry', 'Roofing', 'Plastering', 'Electrical', 'Plumbing', 'Finishes'];
+    const subtotal = trades.reduce((sum, t) => sum + subtotalByTrade(t), 0);
+    const contingencyAmount = subtotal * (contingency / 100);
+    const grandTotal = subtotal + contingencyAmount;
+
+    return (
+      <div className="results-container">
+        <div className="results-header">
+          <div style={{ marginBottom: '24px' }}>
+            <span
+              style={{ fontSize: '13px', color: 'var(--accent-color, #F97316)', cursor: 'pointer', fontWeight: 600 }}
+              onClick={() => onNavigate && onNavigate('dashboard')}
+            >← Back to dashboard</span>
+          </div>
+          <h1 className="results-title">Bill of Quantities</h1>
+          <div className="results-meta">
+            <span><strong>Drawing:</strong> Commercial Unit - Main Floor Plan</span>
+            <span><strong>Processed:</strong> June 4, 2026</span>
+            <span><strong>Rates version:</strong> Q2 2026 BCIS</span>
+          </div>
+
+          <div className="confidence-bar">
+            <span className="confidence-label">Overall confidence:</span>
+            <div className="confidence-meter">
+              <div className="confidence-fill" style={{ width: '92%' }}></div>
+            </div>
+            <span className="confidence-percent">92%</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>— 2 items flagged for review</span>
+          </div>
+
+          <div className="results-disclaimer">
+            <strong>⚠️ AI-generated draft.</strong> Professional review required before issue to client. This is a working document — edit and verify inline.
+          </div>
+
+          <div className="results-controls">
+            <button className="btn btn-primary">📥 Download PDF</button>
+            <button className="btn btn-secondary">📊 Download Excel</button>
+            <button className="btn btn-secondary">🔗 Share with client</button>
+            <button className="btn btn-ghost">ℹ️ View confidence details</button>
+          </div>
+        </div>
+
+        <table className="boq-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Quantity</th>
+              <th>Unit</th>
+              <th>Unit Rate</th>
+              <th>Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trades.map((trade) => (
+              <React.Fragment key={trade}>
+                <tr className="boq-trade-header">
+                  <td colSpan="5">{trade}</td>
+                </tr>
+                {items
+                  .filter(i => i.trade === trade)
+                  .map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        {item.desc}
+                        {item.flags && <div className="flag-low" style={{ marginTop: '6px' }}>⚠️ Verify</div>}
+                      </td>
+                      <td>
+                        <div className="editable-cell">
+                          <input type="number" defaultValue={item.qty} />
+                        </div>
+                      </td>
+                      <td>{item.unit}</td>
+                      <td>£{item.rate.toFixed(2)}</td>
+                      <td style={{ fontWeight: 600 }}>£{calculate(item.qty, item.rate).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                <tr className="boq-subtotal">
+                  <td colSpan="4" style={{ textAlign: 'right' }}>Subtotal — {trade}</td>
+                  <td>£{subtotalByTrade(trade).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              </React.Fragment>
+            ))}
+
+            <tr className="boq-subtotal">
+              <td colSpan="4" style={{ textAlign: 'right' }}>Subtotal (works)</td>
+              <td>£{subtotal.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
+            </tr>
+
+            <tr>
+              <td colSpan="3">
+                <label>Contingency / Allowance</label>
+              </td>
+              <td>
+                <div className="editable-cell">
+                  <input
+                    type="number"
+                    value={contingency}
+                    onChange={(e) => setContingency(parseFloat(e.target.value))}
+                    style={{ width: '60px' }}
+                  />
+                </div>
+                %
+              </td>
+              <td style={{ fontWeight: 600 }}>£{contingencyAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
+            </tr>
+
+            <tr className="boq-grand-total">
+              <td colSpan="4" style={{ textAlign: 'right' }}>Grand Total</td>
+              <td>£{grandTotal.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p style={{ marginTop: '40px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+          All figures are AI-estimated based on current UK material and labour rates. Rates subject to market variation and supplier pricing. Professional QS review recommended before tender.
+        </p>
+      </div>
+    );
+  }
+
+  // ========== DASHBOARD PAGE ==========
+  function DashboardPage({ onNavigate }) {
+    const [currentTab, setCurrentTab] = useState('projects');
+
+    const projects = [
+      { id: 1, name: 'Oak View Residential', client: 'Smith & Partners', date: 'May 28, 2026', status: 'Complete' },
+      { id: 2, name: 'Riverside Office Fit-Out', client: 'Meridian Services', date: 'Jun 1, 2026', status: 'Complete' },
+      { id: 3, name: 'Commercial Unit - Retail', client: 'PEMS Developments', date: 'Jun 3, 2026', status: 'Complete' },
+    ];
+
+    return (
+      <div className="dashboard-wrapper">
+        <div className="dashboard-sidebar">
+          <div style={{ padding: '0 24px', marginBottom: '32px' }}>
+            <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.5px', margin: 0 }}>Menu</p>
+          </div>
+          <div className={`sidebar-item ${currentTab === 'projects' ? 'active' : ''}`} onClick={() => setCurrentTab('projects')}>
+            📋 Projects
+          </div>
+          <div className={`sidebar-item ${currentTab === 'new' ? 'active' : ''}`} onClick={() => { setCurrentTab('new'); onNavigate('upload'); }}>
+            ➕ New project
+          </div>
+          <div className={`sidebar-item`} onClick={() => onNavigate('settings')}>
+            💷 Rates & Branding
+          </div>
+          <div className={`sidebar-item`} onClick={() => onNavigate('settings')}>
+            ⚙️ Settings
+          </div>
+        </div>
+
+        <div className="dashboard-main">
+          {currentTab === 'projects' && (
+            <>
+              <div className="dashboard-header">
+                <h1>Projects</h1>
+              </div>
+
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <p className="stat-label">This month</p>
+                  <p className="stat-value">3</p>
+                </div>
+                <div className="stat-card">
+                  <p className="stat-label">Estimated hours saved</p>
+                  <p className="stat-value">18</p>
+                </div>
+                <div className="stat-card">
+                  <p className="stat-label">Value (at £50/hr)</p>
+                  <p className="stat-value">£900</p>
+                </div>
+              </div>
+
+              <div className="projects-section">
+                <div className="projects-header">
+                  <h3 style={{ margin: 0 }}>Recent projects</h3>
+                  <button className="btn btn-primary" onClick={() => onNavigate('upload')}>+ New project</button>
+                </div>
+                <div className="projects-list">
+                  {projects.map(p => (
+                    <div
+                      key={p.id}
+                      className="project-item"
+                      onClick={() => onNavigate('results')}
+                    >
+                      <div className="project-info">
+                        <h4>{p.name}</h4>
+                        <p>{p.client} • {p.date}</p>
+                      </div>
+                      <div className="project-status">
+                        <span className={`status-badge status-${p.status.toLowerCase()}`}>{p.status}</span>
+                        <span>→</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ========== UPLOAD PAGE ==========
+  function UploadPage({ onNavigate }) {
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [uploadedFile, setUploadedFile] = useState(null);
+
+    const handleDrop = (e) => {
+      e.preventDefault();
+      setUploadedFile('Commercial Unit - Main Floor Plan.pdf');
+      setIsProcessing(true);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setTimeout(() => onNavigate('results'), 800);
+      }, 2500);
+    };
+
+    const handleDragOver = (e) => {
+      e.preventDefault();
+    };
+
+    return (
+      <div className="upload-container">
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h2>Upload a drawing</h2>
+          <p>PDF, single or multi-page. Raster or vector.</p>
+        </div>
+
+        <div
+          className="upload-zone"
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onClick={() => document.querySelector('input[type="file"]').click()}
+        >
+          <div className="upload-icon">📄</div>
+          <h3>Drop your drawing here</h3>
+          <p>or click to select a file</p>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>PDF up to 50 MB</p>
+          <input
+            type="file"
+            accept=".pdf"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              if (e.target.files[0]) {
+                setUploadedFile(e.target.files[0].name);
+                setIsProcessing(true);
+                setTimeout(() => {
+                  setIsProcessing(false);
+                  setTimeout(() => onNavigate('results'), 800);
+                }, 2500);
+              }
+            }}
+          />
+        </div>
+
+        {uploadedFile && (
+          <div className="processing-indicator">
+            <p style={{ marginBottom: '16px', color: 'var(--text-secondary)' }}>
+              <strong>{uploadedFile}</strong>
+            </p>
+            {isProcessing ? (
+              <>
+                <p style={{ margin: '8px 0', fontSize: '14px' }}>Processing... ⚙️</p>
+                <div className="progress-bar">
+                  <div className="progress-fill"></div>
+                </div>
+              </>
+            ) : (
+              <p style={{ color: 'var(--success)', fontSize: '14px' }}>✓ Ready! Redirecting...</p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ========== SIGN IN PAGE ==========
+  function SignInPage({ onNavigate }) {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    const handleSignIn = (e) => {
+      e.preventDefault();
+      if (email && password) {
+        onNavigate('dashboard');
+      }
+    };
+
+    return (
+      <div className="signin-container">
+        <div className="signin-form">
+          <h2>Sign in</h2>
+          <p>Welcome back to Vulcan Costing</p>
+
+          <form onSubmit={handleSignIn}>
+            <div className="form-group">
+              <label htmlFor="email">Email address</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                Sign in
+              </button>
+            </div>
+          </form>
+
+          <div className="signin-links">
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('landing'); }}>Back to home</a>
+            <a href="#">Forgot password?</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== PRICING PAGE ==========
+  function PricingPage({ onNavigate }) {
+    return (
+      <section className="pricing-page">
+        <div className="section-inner">
+          <div className="pricing-page-intro">
+            <h1>Simple, transparent pricing</h1>
+            <p>Start free. Scale as you grow. No long-term contracts. Cancel anytime.</p>
+          </div>
+
+          <table className="pricing-comparison-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Free</th>
+                <th>Pro</th>
+                <th>Studio</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="feature-name">Projects per month</td>
+                <td>2</td>
+                <td>Unlimited</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Watermark on output</td>
+                <td>Yes</td>
+                <td>No</td>
+                <td>No</td>
+              </tr>
+              <tr>
+                <td className="feature-name">PDF export</td>
+                <td className="checkmark">✓</td>
+                <td className="checkmark">✓</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Excel export</td>
+                <td>—</td>
+                <td className="checkmark">✓</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Custom branding & logo</td>
+                <td>—</td>
+                <td className="checkmark">✓</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Custom trade sections</td>
+                <td>—</td>
+                <td className="checkmark">✓</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Team seats</td>
+                <td>1</td>
+                <td>1</td>
+                <td>Up to 5</td>
+              </tr>
+              <tr>
+                <td className="feature-name">White-label output</td>
+                <td>—</td>
+                <td>—</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Custom rates & rules</td>
+                <td>—</td>
+                <td>—</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Variation order templates</td>
+                <td>—</td>
+                <td>—</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name">Priority support</td>
+                <td>—</td>
+                <td>—</td>
+                <td className="checkmark">✓</td>
+              </tr>
+              <tr>
+                <td className="feature-name" style={{ paddingTop: '32px' }}>Monthly price</td>
+                <td style={{ paddingTop: '32px', fontWeight: 700, fontSize: '18px' }}>£0</td>
+                <td style={{ paddingTop: '32px', fontWeight: 700, fontSize: '18px' }}>£39</td>
+                <td style={{ paddingTop: '32px', fontWeight: 700, fontSize: '18px' }}>£99</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td><button className="btn btn-secondary">Get started</button></td>
+                <td><button className="btn btn-primary" onClick={() => onNavigate('upload')}>Start free trial</button></td>
+                <td><button className="btn btn-secondary">Contact sales</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  }
+
+  // ========== FOOTER ==========
+  function Footer({ onNavigate }) {
+    return (
+      <footer>
+        <div className="footer-content">
+          <div className="footer-col">
+            <h4>Vulcan Quanta</h4>
+            <p style={{ fontSize: '14px', color: 'rgba(250, 250, 249, 0.7)', margin: 0 }}>
+              AI-powered quantity surveying for UK builders and contractors. Price any job in 2 minutes.
+            </p>
+          </div>
+          <div className="footer-col">
+            <h4>Product</h4>
+            <a onClick={() => onNavigate('landing')}>How it works</a>
+            <a onClick={() => onNavigate('pricing')}>Pricing</a>
+            <a href="#">Docs</a>
+            <a href="#">API</a>
+          </div>
+          <div className="footer-col">
+            <h4>Company</h4>
+            <a href="#">About</a>
+            <a href="#">Blog</a>
+            <a href="#">Careers</a>
+            <a href="#">Contact</a>
+          </div>
+          <div className="footer-col">
+            <h4>Legal</h4>
+            <a href="#">Terms of service</a>
+            <a href="#">Privacy policy</a>
+            <a href="#">Cookie policy</a>
+            <a href="#">GDPR</a>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <p>© 2026 Vulcan Quanta Ltd. All rights reserved.</p>
+          <p>Vulcan Quanta — UK</p>
+        </div>
+      </footer>
+    );
+  }
+
+  // ========== SETTINGS PAGE ==========
+  function SettingsPage({ onNavigate }) {
+    const [activeTab, setActiveTab] = useState('account');
+    const tabs = [
+      { id: 'account', label: '👤 Account' },
+      { id: 'branding', label: '🎨 Branding' },
+      { id: 'rates',    label: '💷 Rates' },
+      { id: 'billing',  label: '💳 Billing' },
+    ];
+    return (
+      <div className="settings-wrapper">
+        <div className="dashboard-sidebar">
+          <div style={{ padding: '0 24px 16px' }}>
+            <span style={{ fontSize: '13px', color: 'var(--accent-color, #F97316)', cursor: 'pointer', fontWeight: 600 }}
+              onClick={() => onNavigate('dashboard')}>← Dashboard</span>
+          </div>
+          {tabs.map(t => (
+            <div key={t.id} className={`sidebar-item ${activeTab === t.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(t.id)}>{t.label}</div>
+          ))}
+        </div>
+        <div className="settings-main">
+
+          {activeTab === 'account' && (
+            <>
+              <h2 style={{ marginBottom: '32px' }}>Account</h2>
+              <div className="settings-section">
+                <h3>Personal details</h3>
+                <div className="settings-grid">
+                  <div className="settings-field"><label>First name</label><input type="text" defaultValue="James" /></div>
+                  <div className="settings-field"><label>Last name</label><input type="text" defaultValue="Henderson" /></div>
+                  <div className="settings-field"><label>Email</label><input type="email" defaultValue="james@henderson-qs.co.uk" /></div>
+                  <div className="settings-field"><label>Phone</label><input type="tel" defaultValue="+44 7700 900000" /></div>
+                </div>
+                <button className="btn btn-primary">Save changes</button>
+              </div>
+              <div className="settings-section">
+                <h3>Change password</h3>
+                <div className="settings-grid">
+                  <div className="settings-field"><label>Current password</label><input type="password" placeholder="••••••••" /></div>
+                  <div className="settings-field"><label>New password</label><input type="password" placeholder="••••••••" /></div>
+                </div>
+                <button className="btn btn-secondary">Update password</button>
+              </div>
+              <div className="settings-section">
+                <h3 style={{ color: 'var(--error)' }}>Danger zone</h3>
+                <p style={{ fontSize: '14px', marginBottom: '16px' }}>Permanently delete your account. This cannot be undone.</p>
+                <button className="btn" style={{ background: 'var(--error)', color: 'white' }}>Delete account</button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'branding' && (
+            <>
+              <h2 style={{ marginBottom: '32px' }}>Branding</h2>
+              <div className="settings-section">
+                <h3>Company identity</h3>
+                <p style={{ fontSize: '14px', marginBottom: '24px' }}>Appears on all exported BoQs. Available on Pro and Studio plans.</p>
+                <div className="settings-grid">
+                  <div className="settings-field"><label>Company name</label><input type="text" defaultValue="Henderson QS Ltd" /></div>
+                  <div className="settings-field"><label>Website</label><input type="text" defaultValue="www.henderson-qs.co.uk" /></div>
+                  <div className="settings-field"><label>Address</label><input type="text" defaultValue="12 Victoria Street" /></div>
+                  <div className="settings-field"><label>City / Postcode</label><input type="text" defaultValue="Manchester, M1 2EX" /></div>
+                </div>
+              </div>
+              <div className="settings-section">
+                <h3>Logo</h3>
+                <div style={{ border: '2px dashed var(--border-gray)', borderRadius: '8px', padding: '40px', textAlign: 'center', background: 'var(--light-gray)', cursor: 'pointer', marginBottom: '16px' }}>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)' }}>Drop your logo here or click to upload. PNG or SVG, max 2 MB.</p>
+                </div>
+                <button className="btn btn-secondary">Upload logo</button>
+              </div>
+              <div className="settings-section">
+                <h3>Colours</h3>
+                <div className="settings-grid">
+                  <div className="settings-field"><label>Brand primary colour</label><input type="text" defaultValue="#F97316" /></div>
+                  <div className="settings-field"><label>Footer accent colour</label><input type="text" defaultValue="#0F172A" /></div>
+                </div>
+                <button className="btn btn-primary">Save branding</button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'rates' && (
+            <>
+              <h2 style={{ marginBottom: '32px' }}>Rate overrides</h2>
+              <div className="settings-section">
+                <h3>Regional settings</h3>
+                <p style={{ fontSize: '14px', marginBottom: '24px' }}>Base rates follow BCIS Q2 2026. Override individual trades below. Leave blank to use BCIS defaults.</p>
+                <div className="settings-grid">
+                  <div className="settings-field"><label>Region</label>
+                    <select><option>North West England</option><option>London</option><option>South East</option><option>Yorkshire</option><option>Midlands</option><option>Scotland</option><option>Wales</option></select>
+                  </div>
+                  <div className="settings-field"><label>Regional uplift (%)</label><input type="number" defaultValue="0" /></div>
+                </div>
+              </div>
+              <div className="settings-section">
+                <h3>Trade overrides (£/unit)</h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--light-gray)', borderBottom: '1px solid var(--border-gray)' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Trade</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>BCIS Default</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Your override</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[['Brickwork (stretcher)', '£0.65/No'], ['Blockwork (common)', '£0.45/No'], ['Clay tile roofing', '£38.50/m²'], ['Internal plaster', '£7.50/m²'], ['Emulsion paint', '£2.10/m²']].map(([trade, bcis], i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border-gray)' }}>
+                        <td style={{ padding: '12px 16px' }}>{trade}</td>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{bcis}</td>
+                        <td style={{ padding: '12px 16px' }}><input type="text" placeholder="e.g. 0.70" style={{ width: '120px', padding: '8px', border: '1px solid var(--border-gray)', borderRadius: '4px', fontSize: '13px' }} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ marginTop: '24px' }}><button className="btn btn-primary">Save rate overrides</button></div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'billing' && (
+            <>
+              <h2 style={{ marginBottom: '32px' }}>Billing</h2>
+              <div className="settings-section">
+                <h3>Current plan</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', background: 'var(--light-gray)', borderRadius: '8px', marginBottom: '24px' }}>
+                  <div>
+                    <p style={{ fontWeight: 700, color: 'var(--dark-slate)', fontSize: '18px', margin: 0 }}>Pro — £39/month</p>
+                    <p style={{ fontSize: '13px', margin: '4px 0 0', color: 'var(--text-secondary)' }}>Renews July 4, 2026</p>
+                  </div>
+                  <button className="btn btn-secondary">Change plan</button>
+                </div>
+              </div>
+              <div className="settings-section">
+                <h3>Payment method</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border-gray)', borderRadius: '6px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '14px' }}>Visa ending 4242 · Exp 12/28</span>
+                  <button className="btn btn-ghost" style={{ fontSize: '13px' }}>Replace</button>
+                </div>
+                <button className="btn btn-secondary">Add payment method</button>
+              </div>
+              <div className="settings-section">
+                <h3>Invoices</h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--light-gray)', borderBottom: '1px solid var(--border-gray)' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Date</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Amount</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Status</th>
+                      <th style={{ padding: '12px 16px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[['Jun 4, 2026', '£39.00'], ['May 4, 2026', '£39.00'], ['Apr 4, 2026', '£39.00']].map(([date, amount], i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border-gray)' }}>
+                        <td style={{ padding: '12px 16px' }}>{date}</td>
+                        <td style={{ padding: '12px 16px' }}>{amount}</td>
+                        <td style={{ padding: '12px 16px' }}><span style={{ color: 'var(--success)', fontWeight: 600 }}>Paid</span></td>
+                        <td style={{ padding: '12px 16px' }}><button className="btn btn-ghost" style={{ fontSize: '13px', padding: '4px 8px' }}>Download</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  // ========== MAIN APP ==========
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "amber",
+    "heroHeadline": "Price any job in 2 minutes, not 8 hours.",
+    "ctaLabel": "Start free — no card required"
+  }/*EDITMODE-END*/;
+
+  function App() {
+    const [currentPage, setCurrentPage] = useState('landing');
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+    useEffect(() => {
+      const color = t.accent === 'amber' ? '#F97316' : '#2563EB';
+      document.documentElement.style.setProperty('--accent-color', color);
+    }, [t.accent]);
+
+    const pages = {
+      landing:   <LandingPage  onNavigate={setCurrentPage} tweaks={t} />,
+      results:   <ResultsPage  onNavigate={setCurrentPage} />,
+      dashboard: <DashboardPage onNavigate={setCurrentPage} />,
+      upload:    <UploadPage   onNavigate={setCurrentPage} />,
+      signin:    <SignInPage   onNavigate={setCurrentPage} />,
+      pricing:   <PricingPage  onNavigate={setCurrentPage} />,
+      settings:  <SettingsPage onNavigate={setCurrentPage} />,
+    };
+
+    const showChrome = !['signin','dashboard','results','settings'].includes(currentPage);
+
+    return (
+      <>
+        {showChrome && <Header currentPage={currentPage} onNavigate={setCurrentPage} />}
+        <main style={{ minHeight: '100vh' }}>
+          {pages[currentPage] || pages.landing}
+        </main>
+        {showChrome && <Footer onNavigate={setCurrentPage} />}
+
+        <TweaksPanel>
+          <TweakSection label="Brand" />
+          <TweakRadio label="Accent colour" value={t.accent}
+            options={['amber','blue']} onChange={(v) => setTweak('accent', v)} />
+          <TweakSection label="Copy" />
+          <TweakText label="Hero headline" value={t.heroHeadline}
+            onChange={(v) => setTweak('heroHeadline', v)} />
+          <TweakText label="CTA label" value={t.ctaLabel}
+            onChange={(v) => setTweak('ctaLabel', v)} />
+          <TweakSection label="Navigate" />
+          <TweakSelect label="Jump to page" value={currentPage}
+            options={['landing','upload','results','dashboard','settings','pricing','signin']}
+            onChange={(v) => setCurrentPage(v)} />
+        </TweaksPanel>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
