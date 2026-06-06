@@ -189,8 +189,9 @@ def process_pdf():                         # Flask calls this function when a ma
 
     return jsonify(boq_data), 200                  # serialise the Python dict/list back to a JSON HTTP response — like return Ok(boqData) in C# Web API
 
-@app.route("/export", methods=["POST"])   # POST because we send the BoQ JSON in the request body, not a URL param
-def export_pdf():                          # Flask calls this when POST /export is received
+@app.route("/export",   methods=["POST"])   # original route kept for backward compatibility
+@app.route("/download", methods=["POST"])   # new route used by the frontend Download PDF button
+def export_pdf():                           # Flask calls this for both URLs; stacking decorators is supported and idiomatic
     # request.get_json() parses the JSON body — like JsonSerializer.Deserialize in C#
     # force=True accepts the body even if Content-Type is not application/json
     # silent=True returns None instead of raising an exception on parse failure
