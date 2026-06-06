@@ -9,6 +9,9 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <!-- Supabase CDN (UMD) — must load before lib/supabase.js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- GSAP + ScrollTrigger for cinematic scroll animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <!-- Auth layer — regular scripts, execute before Babel processes JSX -->
   <script src="lib/supabase.js"></script>
   <script src="lib/auth.js"></script>
@@ -22,7 +25,7 @@
   <style>
     /* ── RESET ────────────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: auto; }
     img, video { display: block; max-width: 100%; }
 
     /* ── TOKENS ──────────────────────────────────────────────────────────────── */
@@ -160,29 +163,6 @@
     }
     .mobile-link { font-size: 16px; color: rgba(255,255,255,0.7); cursor: pointer; }
 
-    /* ── HERO ──────────────────────────────────────────────────────────────── */
-    .hero-sec { background: var(--c-950); padding: 160px 0 140px; }
-    .hero-inner {
-      max-width: var(--max-w); margin: 0 auto; padding: 0 var(--px);
-      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
-    }
-    .hero-h1 {
-      font-family: var(--font-d); font-size: 76px; font-weight: 800;
-      letter-spacing: -0.04em; line-height: 1.05; color: white; margin-bottom: 24px;
-    }
-    .accent-amber { color: var(--amber); }
-    .hero-sub { font-size: 19px; line-height: 1.75; color: var(--c-300); margin-bottom: 40px; max-width: 480px; }
-    .hero-ctas { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
-    .hero-sec-link { font-size: 15px; font-weight: 600; color: var(--c-300); cursor: pointer; transition: color var(--t); }
-    .hero-sec-link:hover { color: white; }
-    .hero-trust { font-size: 13px; color: var(--c-500); }
-
-    /* ── LOGOS STRIP ─────────────────────────────────────────────────────────────── */
-    .logos-strip { background: var(--c-950); padding: 40px 0; border-bottom: 1px solid var(--c-800); }
-    .logos-label { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-400); margin-bottom: 28px; }
-    .logos-row { display: flex; gap: 20px; justify-content: center; align-items: center; flex-wrap: wrap; padding: 0 var(--px); max-width: var(--max-w); margin: 0 auto; }
-    .logo-ph { width: 110px; height: 36px; border: 1px solid var(--c-800); border-radius: 6px; background: rgba(255,255,255,0.02); }
-
     /* ── BOQ MOCKUP ─────────────────────────────────────────────────────────────── */
     .boq-mockup { background: white; border-radius: 12px; box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04); overflow: hidden; }
     .boq-mock-hdr { background: var(--c-950); padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 1px solid var(--c-800); }
@@ -208,22 +188,6 @@
     .boq-mock-ftr p { font-size: 10px; color: var(--c-400); font-style: italic; }
     .r { text-align: right; font-variant-numeric: tabular-nums; }
 
-    /* ── HOW IT WORKS ────────────────────────────────────────────────────────────── */
-    .steps-wrap { position: relative; }
-    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-    .steps-connector { position: absolute; top: 27px; left: calc(16.67% + 4px); right: calc(16.67% + 4px); height: 1px; background: var(--c-200); z-index: 0; }
-    .step { text-align: center; padding: 0 32px; position: relative; z-index: 1; }
-    .step-num { width: 56px; height: 56px; background: var(--amber); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; font-family: var(--font-d); margin: 0 auto 24px; }
-    .step-title { font-family: var(--font-d); font-size: 18px; font-weight: 700; color: var(--c-950); margin-bottom: 12px; }
-    .step-body { font-size: 15px; color: var(--c-600); line-height: 1.65; }
-
-    /* ── ROI ─────────────────────────────────────────────────────────────────── */
-    .roi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px; margin-bottom: 48px; }
-    .roi-num { font-family: var(--font-d); font-size: 56px; font-weight: 800; letter-spacing: -0.03em; color: var(--amber); line-height: 1; margin-bottom: 8px; }
-    .roi-lbl { font-size: 14px; color: var(--c-300); }
-    .roi-callout { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 32px; font-size: 15px; color: var(--c-300); line-height: 1.8; }
-    .roi-callout strong { color: white; }
-
     /* ── FEATURES ─────────────────────────────────────────────────────────────── */
     .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 64px; }
     .feat-card { padding: 32px; border: 1px solid var(--c-200); border-radius: 12px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: box-shadow var(--t), transform var(--t), border-color var(--t); }
@@ -231,14 +195,6 @@
     .feat-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--c-100); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
     .feat-name { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: var(--c-950); margin-bottom: 8px; }
     .feat-desc { font-size: 14px; color: var(--c-600); line-height: 1.65; }
-
-    /* ── TRUST ─────────────────────────────────────────────────────────────────── */
-    .trust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
-    .trust-pt { display: flex; gap: 16px; margin-bottom: 32px; }
-    .trust-check { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: rgba(16,185,129,0.14); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--green); font-weight: 700; margin-top: 3px; }
-    .trust-hd { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: white; margin-bottom: 6px; }
-    .trust-body { font-size: 14px; color: var(--c-300); line-height: 1.65; }
-    .trust-aside { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 40px; }
 
     /* ── PRICING ─────────────────────────────────────────────────────────────── */
     .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -254,13 +210,6 @@
     .pricing-feats li.on::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 2px; font-size: 13px; }
     .pricing-feats li.off { opacity: 0.45; }
     .pricing-feats li.off::before { content: '—'; color: var(--c-400); flex-shrink: 0; }
-
-    /* ── TESTIMONIALS ────────────────────────────────────────────────────────────── */
-    .testi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-    .testi-block { padding: 32px; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; }
-    .testi-q { font-size: 17px; font-style: italic; color: var(--c-200); line-height: 1.7; margin-bottom: 24px; }
-    .testi-name { font-family: var(--font-d); font-weight: 700; color: white; font-size: 14px; margin-bottom: 2px; }
-    .testi-role { font-size: 13px; color: var(--c-400); }
 
     /* ── FAQ ─────────────────────────────────────────────────────────────────── */
     .acc-wrap { max-width: 720px; margin: 0 auto; }
@@ -428,25 +377,6 @@
     }
     .will-reveal.appeared { opacity: 1; transform: translateY(0); }
 
-    /* Hero entrance */
-    @keyframes heroIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    .hero-sec .hero-logo-mark   { animation: heroIn 0.55s ease both; }
-    .hero-sec .hero-h1          { animation: heroIn 0.55s 0.1s ease both; }
-    .hero-sec .hero-sub         { animation: heroIn 0.55s 0.18s ease both; }
-    .hero-sec .hero-ctas        { animation: heroIn 0.55s 0.24s ease both; }
-    .hero-sec .hero-trust       { animation: heroIn 0.55s 0.30s ease both; }
-    .hero-inner > div:last-child { animation: heroIn 0.65s 0.12s ease both; }
-
-    /* Logo helpers */
-    .hero-logo-mark {
-      height: 68px; display: block; margin-bottom: 28px;
-      filter: drop-shadow(0 0 2px rgba(255,255,255,0.1)) brightness(1.12);
-    }
-    .early-access-logo {
-      height: 80px; display: block; margin: 0 auto 36px;
-      filter: brightness(0) invert(1) drop-shadow(0 2px 14px rgba(249,115,22,0.4));
-    }
-
     /* ── MOBILE ──────────────────────────────────────────────────────────────── */
     @media (max-width: 1024px) {
       :root { --px: 32px; }
@@ -484,6 +414,427 @@
       .res-controls { flex-wrap: wrap; }
       .signin-card { padding: 32px 24px; }
     }
+
+    /* ─────────────────────────────────────────────────────────────────────────────
+       CINEMATIC LANDING — transparent header + full-bleed video hero
+    ───────────────────────────────────────────────────────────────────────────── */
+
+    /* Header overrides when on landing page */
+    body.is-landing .hdr {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom-color: transparent;
+      transition: background 0.4s ease, backdrop-filter 0.4s ease, border-color 0.4s ease;
+    }
+    body.is-landing .hdr.hdr-scrolled {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom-color: rgba(255,255,255,0.06);
+    }
+
+    /* ── VIDEO PIN WRAP ─────────────────────────────────────────────────────── */
+    .cin-pin-wrap { position: relative; height: 600vh; }
+
+    .cin-sticky {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: #080706;
+    }
+
+    .cin-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .cin-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.5) 0%,
+        rgba(0,0,0,0.08) 28%,
+        rgba(0,0,0,0.12) 56%,
+        rgba(0,0,0,0.72) 100%
+      );
+    }
+
+    /* Content layers — all stacked absolutely, each phase controls opacity */
+    .cin-content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 var(--px) 8vh;
+      pointer-events: none;
+    }
+    .cin-content .btn { pointer-events: auto; }
+
+    .cin-phase2 { opacity: 0; }
+    .cin-logo-reveal {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ── VIDEO TEXT TYPOGRAPHY ─────────────────────────────────────────────── */
+    .cin-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 22px;
+    }
+    .cin-h1 {
+      font-family: var(--font-d);
+      font-size: clamp(36px, 5.5vw, 78px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      max-width: 820px;
+      margin-bottom: 36px;
+    }
+    .cin-hero-note {
+      margin-top: 18px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.04em;
+    }
+    .cin-h2 {
+      font-family: var(--font-d);
+      font-size: clamp(30px, 4.5vw, 66px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      margin-bottom: 18px;
+    }
+    .cin-phase2-sub {
+      font-size: 18px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.65;
+      max-width: 460px;
+    }
+
+    /* Logo reveal */
+    .cin-logo-img {
+      height: 110px;
+      width: auto;
+      filter: drop-shadow(0 0 48px rgba(249,115,22,0.25));
+    }
+    .cin-logo-wordmark {
+      margin-top: 28px;
+      font-family: var(--font-d);
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: #fff;
+    }
+    .cin-logo-tagline {
+      margin-top: 22px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* Scroll hint */
+    .cin-scroll-hint {
+      position: absolute;
+      bottom: 38px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,0.3);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .cin-scroll-line {
+      width: 1px;
+      height: 44px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.45), transparent);
+      animation: cin-scroll-pulse 2.2s ease-in-out infinite;
+    }
+    @keyframes cin-scroll-pulse {
+      0%, 100% { opacity: 0.35; transform: scaleY(1); }
+      50% { opacity: 0.9; transform: scaleY(1.08); }
+    }
+
+    /* ── SHARED CINEMATIC SECTION PRIMITIVES ────────────────────────────────── */
+    .cin-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+    .cin-section-label-dk { /* same but used on light backgrounds */
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+    .cin-section-h {
+      font-family: var(--font-d);
+      font-size: clamp(28px, 3.5vw, 52px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    .cin-section-h-lt {
+      font-family: var(--font-d);
+      font-size: clamp(28px, 3.5vw, 52px);
+      font-weight: 700;
+      color: var(--c-950);
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+
+    /* ── 2. EDITORIAL STATEMENT ────────────────────────────────────────────── */
+    .cin-statement { background: #0B0B0B; padding: 128px 0; }
+    .cin-statement-text {
+      font-family: var(--font-d);
+      font-size: clamp(26px, 3.2vw, 50px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      max-width: 860px;
+      margin-top: 20px;
+    }
+
+    /* ── 3. PROCESS ─────────────────────────────────────────────────────────── */
+    .cin-process { background: #111213; padding: 128px 0; }
+    .cin-process-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .cin-process-item {
+      padding: 52px 44px;
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+    .cin-process-item:last-child { border-right: none; }
+    .cin-process-num {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: var(--amber);
+      margin-bottom: 30px;
+    }
+    .cin-process-title {
+      font-family: var(--font-d);
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .cin-process-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.38);
+      line-height: 1.78;
+    }
+
+    /* ── 4. PRODUCT SPLIT ───────────────────────────────────────────────────── */
+    .cin-split { padding: 128px 0; background: #F9F9F9; }
+    .cin-split-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 var(--px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 96px;
+      align-items: center;
+    }
+    .cin-split-sub {
+      font-size: 16px;
+      color: var(--c-500);
+      line-height: 1.78;
+      margin-top: 16px;
+      max-width: 380px;
+    }
+
+    /* ── 5. FEATURES ────────────────────────────────────────────────────────── */
+    .cin-features { padding: 128px 0; background: #fff; }
+    .cin-feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--c-200);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .cin-feat-item {
+      padding: 44px 40px;
+      border-right: 1px solid var(--c-200);
+      border-bottom: 1px solid var(--c-200);
+      transition: background 0.2s ease;
+    }
+    .cin-feat-item:nth-child(3n) { border-right: none; }
+    .cin-feat-item:nth-child(n+4) { border-bottom: none; }
+    .cin-feat-item:hover { background: var(--c-50); }
+    .cin-feat-name {
+      font-family: var(--font-d);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--c-950);
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+    .cin-feat-desc { font-size: 14px; color: var(--c-500); line-height: 1.72; }
+
+    /* ── 6. PROOF / TRUST ───────────────────────────────────────────────────── */
+    .cin-proof { padding: 128px 0; background: #0B0B0B; }
+    .cin-proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 80px;
+    }
+    .cin-proof-item {
+      padding: 44px 40px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .cin-proof-item:nth-child(3n) { border-right: none; }
+    .cin-proof-item:nth-child(n+4) { border-bottom: none; }
+    .cin-proof-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.22);
+      margin-bottom: 18px;
+    }
+    .cin-proof-claim {
+      font-family: var(--font-d);
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+    .cin-proof-note { font-size: 13px; color: rgba(255,255,255,0.33); line-height: 1.72; }
+
+    /* ── 7. PRICING ─────────────────────────────────────────────────────────── */
+    .cin-pricing { padding: 128px 0; background: var(--c-50); }
+    .cin-pricing-sub { font-size: 17px; color: var(--c-500); margin-top: 14px; }
+
+    /* ── 8. FAQ ─────────────────────────────────────────────────────────────── */
+    .cin-faq { padding: 128px 0; background: #fff; }
+
+    /* ── 9. FINAL CTA ───────────────────────────────────────────────────────── */
+    .cin-cta {
+      background: #080706;
+      padding: 160px 0;
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .cin-cta-h {
+      font-family: var(--font-d);
+      font-size: clamp(36px, 5.5vw, 78px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+    .cin-cta-sub {
+      font-family: var(--font-d);
+      font-size: clamp(30px, 4.2vw, 62px);
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 52px;
+    }
+    .cin-cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-ghost-lt {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.55);
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 100px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost-lt:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.85); }
+
+    /* ── CINEMATIC MOBILE ───────────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .cin-pin-wrap { height: 500vh; }
+      .cin-split-inner { grid-template-columns: 1fr; gap: 56px; }
+      .cin-process-grid { grid-template-columns: 1fr; }
+      .cin-process-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+      .cin-process-item:last-child { border-bottom: none; }
+      .cin-proof-grid { grid-template-columns: 1fr 1fr; }
+      .cin-proof-item:nth-child(3n) { border-right: 1px solid rgba(255,255,255,0.06); }
+      .cin-proof-item:nth-child(2n) { border-right: none; }
+      .cin-feat-grid { grid-template-columns: repeat(2, 1fr); }
+      .cin-feat-item:nth-child(3n) { border-right: 1px solid var(--c-200); }
+      .cin-feat-item:nth-child(2n) { border-right: none; }
+      .cin-feat-item:nth-child(n+5) { border-bottom: none; }
+      .cin-feat-item:nth-child(n+4) { border-bottom: 1px solid var(--c-200); }
+    }
+    @media (max-width: 768px) {
+      .cin-pin-wrap { height: 450vh; }
+      .cin-h1 { font-size: 34px; }
+      .cin-h2 { font-size: 28px; }
+      .cin-logo-img { height: 80px; }
+      .cin-content { padding: 0 var(--px) 12vh; }
+      .cin-proof-grid { grid-template-columns: 1fr; }
+      .cin-proof-item { border-right: none !important; }
+      .cin-feat-grid { grid-template-columns: 1fr; }
+      .cin-feat-item { border-right: none !important; }
+      .cin-statement, .cin-process, .cin-split, .cin-features,
+      .cin-proof, .cin-pricing, .cin-faq, .cin-cta { padding: 80px 0; }
+    }
+
+    /* ── REDUCED MOTION — collapse the scroll-scrub into a static hero ───────── */
+    @media (prefers-reduced-motion: reduce) {
+      .cin-pin-wrap { height: auto !important; }
+      .cin-sticky   { position: relative; height: 100vh; min-height: 560px; }
+      .cin-scroll-line { animation: none; }
+      /* Phase 1 stays visible; later phases never animate in */
+      .cin-content:not(.cin-phase2) { opacity: 1 !important; }
+      .cin-phase2, .cin-logo-reveal { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -499,7 +850,7 @@ const {
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "amber",
-  "headline": "Price any job in 2 minutes, not 8 hours.",
+  "headline": "Cost plans that used to take days. Now they don't.",
   "cta": "Start free"
 }/*EDITMODE-END*/;
 
@@ -524,6 +875,23 @@ function App() {
     document.documentElement.style.setProperty('--amber', c);
     document.documentElement.style.setProperty('--amber-d', t.accent === 'blue' ? '#1D4ED8' : '#EA6C0A');
   }, [t.accent]);
+
+  // ── Landing page body class + scrolled header ──────────────────────────────────
+  useEffect(() => {
+    const isLanding = page === 'landing';
+    document.body.classList.toggle('is-landing', isLanding);
+    if (!isLanding) {
+      const hdr = document.querySelector('.hdr');
+      if (hdr) hdr.classList.remove('hdr-scrolled');
+      return;
+    }
+    const hdr = document.querySelector('.hdr');
+    const onScroll = () => {
+      if (hdr) hdr.classList.toggle('hdr-scrolled', window.scrollY > window.innerHeight * 0.6);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [page]);
 
   // ── Supabase auth state subscription ───────────────────────────────────────────────
   // Fires INITIAL_SESSION on mount (sets user + clears authLoading),

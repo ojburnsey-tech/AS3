@@ -7,6 +7,7 @@ function AnnouncementBar({ go }) {
 
 function Header({ page, go, toast, user }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoOk, setLogoOk] = useState(true);
   const links = [
     { label: 'How it works', target: 'landing' },
     { label: 'Pricing', target: 'pricing' },
@@ -26,7 +27,13 @@ function Header({ page, go, toast, user }) {
     <header className="hdr">
       <div className="hdr-inner">
         <span onClick={() => go('landing')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-          <img src="logo-transparent.png" alt="Vulcan Quanta" style={{ height: '34px', display: 'block', filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.15)) brightness(1.15)' }} />
+          {logoOk ? (
+            <img src="logo-transparent.png" alt="Vulcan Quanta"
+              onError={() => setLogoOk(false)}
+              style={{ height: '34px', display: 'block', filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.15)) brightness(1.15)' }} />
+          ) : (
+            <span style={{ fontFamily: 'var(--font-d)', fontSize: '17px', fontWeight: 700, color: '#fff', letterSpacing: '0.08em' }}>VULCAN QUANTA</span>
+          )}
         </span>
         <nav>
           <ul className="nav-links">

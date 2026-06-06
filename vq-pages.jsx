@@ -1,167 +1,377 @@
 // vq-pages.jsx — all page components
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 const { BoQMockup } = window;
 
 // ─── LANDING ────────────────────────────────────────────────────────────────────────
 function LandingPage({ go, tweaks = {}, toast }) {
   const [openFaq, setOpenFaq] = useState(null);
-  const headline = tweaks.headline || 'Price any job in 2 minutes, not 8 hours.';
-  const ctaLabel = tweaks.cta || 'Start free';
+  const videoRef     = useRef(null);
+  const pinWrapRef   = useRef(null);
+  const taglineRef   = useRef(null);
+  const phase2Ref    = useRef(null);
+  const logoRef      = useRef(null);
+  const scrollHintRef = useRef(null);
 
-  const renderHeadline = (text) =>
-    text.split(/(2 minutes|8 hours)/).map((p, i) =>
-      (p === '2 minutes' || p === '8 hours')
-        ? <span key={i} className="accent-amber">{p}</span>
-        : p
-    );
+  // ── GSAP scroll-scrubbed video + text phases ──────────────────────────────────
+  useEffect(() => {
+    const video   = videoRef.current;
+    const pinWrap = pinWrapRef.current;
+    if (!video || !pinWrap) return;
 
-  const features = [
-    { icon: '📐', name: 'Automated measurement', desc: 'Reads every wall, opening, span and height. No manual scaling.' },
-    { icon: '💷', name: 'Current UK rates', desc: 'BCIS Q2 2026 labour and material rates. Regional variations included.' },
-    { icon: '⚠️', name: 'Confidence scoring', desc: 'Every item flagged for confidence. Low-confidence items highlighted.' },
-    { icon: '📄', name: 'Professional export', desc: 'PDF and Excel. Your branding on Pro/Studio. Ready to issue.' },
-    { icon: '🔄', name: 'Variation orders', desc: 'Duplicate, edit and track additions with a timestamped audit trail.' },
-    { icon: '🏷️', name: 'Your branding', desc: 'Add your logo, address and colours to every output. Pro and Studio.' },
-  ];
+    // Respect users who ask for reduced motion: skip the scroll-scrub entirely.
+    // CSS collapses the pin wrap to a static hero; the first frame + tagline show.
+    const reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      video.setAttribute('preload', 'metadata');
+      return;
+    }
+
+    let triggers = [];
+    let timeline = null;
+    let metaHandler = null;
+    let primeHandler = null;
+    let onLoad = null;
+
+    const init = () => {
+      const { gsap, ScrollTrigger } = window;
+      if (!gsap || !ScrollTrigger) return;
+      gsap.registerPlugin(ScrollTrigger);
+
+      const dur = video.duration || 10;
+
+      // 1. Scrub video currentTime with scroll. Guard against piling up seeks
+      //    on slow decoders by skipping updates while a seek is still in flight.
+      const st = ScrollTrigger.create({
+        trigger: pinWrap,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: 1,
+        onUpdate: (self) => {
+          if (video.readyState >= 1 && !video.seeking) {
+            video.currentTime = self.progress * dur;
+          }
+        },
+      });
+      triggers.push(st);
+
+      // 2. Text phase timeline — mapped to full scroll distance
+      timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: pinWrap,
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: 1.8,
+        },
+      });
+      if (timeline.scrollTrigger) triggers.push(timeline.scrollTrigger);
+
+      // Phase 1 tagline: fade in 0→10%, hold 10→58%, fade out 58→70%
+      timeline.from(taglineRef.current, { opacity: 0, y: 26, duration: 0.10 }, 0)
+        .to(taglineRef.current,   { opacity: 1,          duration: 0.48 }, 0.10)
+        .to(taglineRef.current,   { opacity: 0, y: -18,  duration: 0.12 }, 0.58);
+
+      // Scroll hint fades out as the first phase ends
+      timeline.to(scrollHintRef.current, { opacity: 0, duration: 0.08 }, 0.12);
+
+      // Phase 2 "upload measure price": fade in 68→78%, hold 78→87%, fade out 87→92%
+      timeline.fromTo(phase2Ref.current,
+          { opacity: 0, y: 22 },
+          { opacity: 1, y: 0,  duration: 0.10 }, 0.68)
+        .to(phase2Ref.current,   { opacity: 1,          duration: 0.09 }, 0.78)
+        .to(phase2Ref.current,   { opacity: 0,          duration: 0.05 }, 0.87);
+
+      // Phase 3 logo reveal: fade in 93→100%
+      timeline.fromTo(logoRef.current,
+          { opacity: 0, scale: 0.94 },
+          { opacity: 1, scale: 1,    duration: 0.07, ease: 'power2.out' }, 0.93);
+
+      // Recalculate trigger positions once everything below the fold has laid
+      // out (fonts swapped, BoQ mockup rendered) so the scrub maps accurately.
+      ScrollTrigger.refresh();
+      onLoad = () => ScrollTrigger.refresh();
+      window.addEventListener('load', onLoad);
+    };
+
+    // iOS Safari will not paint video frames from currentTime seeks until the
+    // element has been played at least once. Prime it on the first user gesture.
+    primeHandler = () => {
+      const p = video.play();
+      if (p && p.then) p.then(() => video.pause()).catch(() => {});
+      else { try { video.pause(); } catch (e) {} }
+    };
+    window.addEventListener('touchstart', primeHandler, { once: true, passive: true });
+    window.addEventListener('pointerdown', primeHandler, { once: true });
+
+    // Small delay so the GSAP CDN scripts have executed before we register.
+    const timer = setTimeout(() => {
+      if (video.readyState >= 1) {
+        init();
+      } else {
+        metaHandler = init;
+        video.addEventListener('loadedmetadata', metaHandler, { once: true });
+      }
+    }, 80);
+
+    return () => {
+      clearTimeout(timer);
+      if (metaHandler) video.removeEventListener('loadedmetadata', metaHandler);
+      if (onLoad) window.removeEventListener('load', onLoad);
+      window.removeEventListener('touchstart', primeHandler);
+      window.removeEventListener('pointerdown', primeHandler);
+      triggers.forEach(t => t && t.kill());
+      if (timeline) timeline.kill();
+      if (window.gsap) {
+        window.gsap.killTweensOf([
+          taglineRef.current, phase2Ref.current, logoRef.current, scrollHintRef.current,
+        ]);
+      }
+    };
+  }, []);
 
   const faqs = [
-    { q: 'How accurate is Vulcan Quanta?', a: 'Our AI is trained on thousands of professional BoQs and UK drawings. Accuracy is 94% on standard projects. Every item is confidence-scored so you know exactly where to focus your review.' },
-    { q: 'What drawing formats does it accept?', a: 'Currently PDF — raster and vector, single or multi-page. JPG and PNG support is coming in Q3 2026.' },
-    { q: 'Is my data secure?', a: "Drawings are encrypted in transit and at rest, deleted after 30 days, and never used for model training. GDPR-compliant, UK-hosted." },
-    { q: 'Do I still need a qualified quantity surveyor?', a: 'Vulcan removes the measurement and rate-application work — typically 5–8 hours per job. A human QS still reviews every output for fitness for purpose and professional liability. You save time; you keep control.' },
-    { q: 'Can I customise rate tables and output branding?', a: 'Pro plan includes custom branding, logo and trade breakdowns. Studio adds custom rate tables, regional overrides and up to 5 team seats.' },
+    { q: 'How accurate is Vulcan Quanta?',
+      a: 'Our AI is trained on thousands of professional BoQs and UK drawings. Accuracy is 94% on standard projects. Every item is confidence-scored so you know exactly where to focus your review.' },
+    { q: 'What drawing formats does it accept?',
+      a: 'Currently PDF — raster and vector, single or multi-page. JPG and PNG support is planned.' },
+    { q: 'Is my data secure?',
+      a: 'Drawings are encrypted in transit and at rest, deleted after 30 days, and never used for model training. GDPR-compliant, UK-hosted.' },
+    { q: 'Do I still need a qualified quantity surveyor?',
+      a: 'Vulcan removes the measurement and rate-application work — typically 5–8 hours per job. A human QS still reviews every output for fitness for purpose and professional liability. You save time; you keep control.' },
+    { q: 'Can I customise rate tables and output branding?',
+      a: 'Pro plan includes custom branding, logo and trade breakdowns. Studio adds custom rate tables, regional overrides and up to 5 team seats.' },
   ];
 
   const plans = [
     { name: 'Free', price: '£0', period: 'forever', rec: false,
-      feats: [{ on: true, t: '2 projects per month' },{ on: true, t: 'Watermarked output' },{ on: true, t: 'PDF export' },{ on: false, t: 'Excel export' },{ on: false, t: 'Custom branding' },{ on: false, t: 'Priority support' }],
+      feats: [
+        { on: true,  t: '2 projects per month' },
+        { on: true,  t: 'Watermarked output' },
+        { on: true,  t: 'PDF export' },
+        { on: false, t: 'Excel export' },
+        { on: false, t: 'Custom branding' },
+        { on: false, t: 'Priority support' },
+      ],
       cta: 'Get started', action: () => go('signup') },
     { name: 'Pro', price: '£39', period: 'per month', rec: true,
-      feats: [{ on: true, t: 'Unlimited projects' },{ on: true, t: 'No watermark' },{ on: true, t: 'PDF & Excel export' },{ on: true, t: 'Your branding & logo' },{ on: true, t: 'Custom trade sections' },{ on: false, t: 'Team seats (up to 5)' }],
+      feats: [
+        { on: true,  t: 'Unlimited projects' },
+        { on: true,  t: 'No watermark' },
+        { on: true,  t: 'PDF & Excel export' },
+        { on: true,  t: 'Your branding & logo' },
+        { on: true,  t: 'Custom trade sections' },
+        { on: false, t: 'Team seats (up to 5)' },
+      ],
       cta: 'Start free trial', action: () => go('signup') },
     { name: 'Studio', price: '£99', period: 'per month', rec: false,
-      feats: [{ on: true, t: 'Everything in Pro' },{ on: true, t: 'Up to 5 team seats' },{ on: true, t: 'White-label output' },{ on: true, t: 'Custom rates & rules' },{ on: true, t: 'Variation order templates' },{ on: true, t: 'Priority support' }],
+      feats: [
+        { on: true, t: 'Everything in Pro' },
+        { on: true, t: 'Up to 5 team seats' },
+        { on: true, t: 'White-label output' },
+        { on: true, t: 'Custom rates & rules' },
+        { on: true, t: 'Variation order templates' },
+        { on: true, t: 'Priority support' },
+      ],
       cta: 'Contact sales', action: () => toast('Get in touch: hello@vulcanquanta.com', 'info') },
   ];
 
   return (
     <>
-      {/* HERO */}
-      <section className="hero-sec">
-        <div className="hero-inner">
-          <div>
-            <img src="logo-transparent.png" alt="Vulcan Quanta" className="hero-logo-mark" />
-            <h1 className="hero-h1">{renderHeadline(headline)}</h1>
-            <p className="hero-sub">Vulcan reads your drawings, measures every element, and hands you a priced Bill of Quantities ready to issue. Built for UK builders and quantity surveyors.</p>
-            <div className="hero-ctas">
-              <button className="btn btn-amber btn-pill btn-lg" onClick={() => go('upload')}>{ctaLabel}</button>
-              <span className="hero-sec-link" onClick={() => go('results')}>See a sample BoQ →</span>
-            </div>
-            <p className="hero-trust">No credit card required · Setup in under 5 minutes · Cancel anytime</p>
-          </div>
-          <div><BoQMockup /></div>
-        </div>
-      </section>
+      {/* ── 1. PINNED CINEMATIC HERO ─────────────────────────────────────────── */}
+      <div ref={pinWrapRef} className="cin-pin-wrap">
+        <div className="cin-sticky">
+          <video
+            ref={videoRef}
+            className="cin-video"
+            src="hero.mp4"
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
+          <div className="cin-overlay" />
 
-      {/* LOGOS */}
-      <div className="logos-strip">
-        <div className="inner">
-          <p className="logos-label">Trusted by builders and QS firms across the UK</p>
-          <div className="logos-row">{[1,2,3,4,5,6].map(i => <div key={i} className="logo-ph" />)}</div>
+          {/* Phase 1 — Tagline */}
+          <div ref={taglineRef} className="cin-content">
+            <p className="cin-eyebrow">Vulcan Quanta</p>
+            <h1 className="cin-h1">
+              Cost plans that used<br />to take days.<br />Now they don't.
+            </h1>
+            <button
+              className="btn btn-amber btn-pill"
+              style={{ padding: '14px 28px', fontSize: '15px', fontWeight: 600 }}
+              onClick={() => go('signup')}
+            >
+              Start free
+            </button>
+            <p className="cin-hero-note">
+              No credit card required · UK quantity surveying · AI-powered
+            </p>
+          </div>
+
+          {/* Phase 2 — Process hint */}
+          <div ref={phase2Ref} className="cin-content cin-phase2">
+            <p className="cin-eyebrow">The process</p>
+            <p className="cin-h2">Upload. Measure. Price.</p>
+            <p className="cin-phase2-sub">
+              From drawing to itemised Bill of Quantities. Under 2 minutes.
+            </p>
+          </div>
+
+          {/* Phase 3 — Logo reveal (inline SVG: transparent, scalable, always renders) */}
+          <div ref={logoRef} className="cin-logo-reveal" role="img" aria-label="Vulcan Quanta">
+            <svg className="cin-logo-img" viewBox="0 0 120 80" fill="none"
+                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polyline points="8,12 33,66 58,12" stroke="#FAFAFA"
+                        strokeWidth="11" strokeLinejoin="miter" strokeLinecap="square" />
+              <circle cx="89" cy="40" r="25" stroke="var(--amber)" strokeWidth="11" />
+              <line x1="95" y1="50" x2="113" y2="71" stroke="var(--amber)"
+                    strokeWidth="11" strokeLinecap="square" />
+            </svg>
+            <p className="cin-logo-wordmark">VULCAN QUANTA</p>
+            <p className="cin-logo-tagline">AI-Powered Quantity Surveying</p>
+          </div>
+
+          {/* Scroll cue */}
+          <div ref={scrollHintRef} className="cin-scroll-hint" aria-hidden="true">
+            <div className="cin-scroll-line" />
+            <span>Scroll</span>
+          </div>
         </div>
       </div>
 
-      {/* HOW IT WORKS */}
-      <section className="section section-white">
+      {/* ── 2. EDITORIAL STATEMENT ───────────────────────────────────────────── */}
+      <section className="cin-statement">
         <div className="inner">
-          <h2 className="display-lg" style={{ marginBottom: '12px' }}>Three steps to a priced BoQ</h2>
-          <p style={{ color: 'var(--c-600)', fontSize: '18px', marginBottom: '64px', maxWidth: '500px' }}>From drawing to itemised Bill of Quantities in under 2 minutes.</p>
-          <div className="steps-wrap">
-            <div className="steps-connector"></div>
-            <div className="steps-grid">
-              {[
-                { n: '1', title: 'Upload your drawing', desc: 'Drag a PDF — single or multi-page, raster or vector. Takes about 10 seconds.' },
-                { n: '2', title: 'Vulcan measures and prices', desc: 'AI reads every element, applies current BCIS rates, and produces a fully itemised BoQ in roughly 90 seconds.' },
-                { n: '3', title: 'Review, edit, export', desc: 'Edit any item inline, flag anything for review, then export as PDF, Excel, or share a live link.' },
-              ].map((s, i) => (
-                <div key={i} className="step">
-                  <div className="step-num">{s.n}</div>
-                  <h4 className="step-title">{s.title}</h4>
-                  <p className="step-body">{s.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <p className="cin-section-label">The work</p>
+          <p className="cin-statement-text">
+            Vulcan reads your drawings. Every wall, every span, every height.
+            Priced to BCIS. Structured to NRM2. Ready to issue.
+          </p>
         </div>
       </section>
 
-      {/* ROI */}
-      <section className="section section-darker">
+      {/* ── 3. THREE-STEP PROCESS ────────────────────────────────────────────── */}
+      <section className="cin-process">
         <div className="inner">
-          <h2 className="display-lg" style={{ color: 'white', marginBottom: '12px' }}>The numbers</h2>
-          <p style={{ color: 'var(--c-300)', fontSize: '18px', marginBottom: '64px' }}>What Vulcan is worth to your practice.</p>
-          <div className="roi-grid">
-            {[{ n: '6–8h', l: 'Saved per job' },{ n: '£400', l: 'Typical QS day rate' },{ n: '15+', l: 'Jobs per month (typical)' },{ n: '80h', l: 'Recovered monthly' }].map((s, i) => (
-              <div key={i}><p className="roi-num">{s.n}</p><p className="roi-lbl">{s.l}</p></div>
-            ))}
-          </div>
-          <div className="roi-callout">
-            <strong>The maths:</strong> A freelance QS bills around £400 a day. Vulcan saves roughly 6 hours per job. At 15 jobs a month, that is 90 hours back — for £39. On a Studio plan, a team of three could process 50+ projects, reclaiming 250+ hours and freeing everyone to pursue more work.
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section className="section section-light">
-        <div className="inner">
-          <h2 className="display-lg" style={{ marginBottom: '12px' }}>Built for professional work</h2>
-          <p style={{ color: 'var(--c-600)', fontSize: '18px', marginBottom: '64px', maxWidth: '480px' }}>Everything a QS practice needs. Nothing it does not.</p>
-          <div className="feat-grid">
-            {features.map((f, i) => (
-              <div key={i} className="feat-card">
-                <div className="feat-icon">{f.icon}</div>
-                <p className="feat-name">{f.name}</p>
-                <p className="feat-desc">{f.desc}</p>
+          <p className="cin-section-label">Three steps</p>
+          <h2 className="cin-section-h">From drawing to priced BoQ.</h2>
+          <div className="cin-process-grid">
+            {[
+              { n: '01', title: 'Upload your drawing',
+                desc: 'Drag a PDF — single or multi-page, raster or vector. Takes seconds.' },
+              { n: '02', title: 'Vulcan measures and prices',
+                desc: 'AI reads every element, applies current BCIS rates, and produces a fully itemised BoQ. Under 2 minutes.' },
+              { n: '03', title: 'Review, edit, export',
+                desc: 'Edit any item inline. Export as PDF or Excel, ready to issue under your own branding.' },
+            ].map((s, i) => (
+              <div key={i} className="cin-process-item">
+                <p className="cin-process-num">{s.n}</p>
+                <p className="cin-process-title">{s.title}</p>
+                <p className="cin-process-desc">{s.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* TRUST */}
-      <section className="section section-dark">
-        <div className="inner">
-          <h2 className="display-lg" style={{ color: 'white', marginBottom: '64px' }}>Built for trust</h2>
-          <div className="trust-grid">
-            <div>
-              {[
-                { h: 'You stay in control', b: 'Every output is a reviewable draft. Human approval is always required. Vulcan removes the busywork — not the professional.' },
-                { h: 'Your data stays private', b: "Encrypted in transit and at rest. Drawings deleted after 30 days. Never used for model training. GDPR-compliant, UK-hosted." },
-                { h: 'NRM2-aware methodology', b: 'Output structured to align with NRM2 standard measurement rules. Professional QS review still applies and is always recommended.' },
-              ].map((pt, i) => (
-                <div key={i} className="trust-pt">
-                  <div className="trust-check">✓</div>
-                  <div>
-                    <p className="trust-hd">{pt.h}</p>
-                    <p className="trust-body">{pt.b}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="trust-aside">
-              <p><strong style={{ color: 'white' }}>This is a tool for professionals — not a replacement for professional judgment.</strong></p>
-              <p style={{ marginTop: '16px', color: 'var(--c-300)', fontSize: '15px', lineHeight: '1.75' }}>Vulcan removes the measurement and rate-application work. Your expertise, local knowledge, and professional oversight remain essential to every project.</p>
-            </div>
+      {/* ── 4. PRODUCT SPLIT — BoQ MOCKUP ────────────────────────────────────── */}
+      <section className="cin-split">
+        <div className="cin-split-inner">
+          <div>
+            <p className="cin-section-label-dk">Output</p>
+            <h2 className="cin-section-h-lt">A professional BoQ, ready to issue.</h2>
+            <p className="cin-split-sub">
+              Every element measured. Every item priced to BCIS Q2 2026 rates.
+              Confidence-scored. Structured to NRM2.
+            </p>
+            <button
+              className="btn btn-amber btn-pill"
+              style={{ marginTop: '32px', padding: '14px 28px', fontSize: '15px', fontWeight: 600 }}
+              onClick={() => go('results')}
+            >
+              See a sample BoQ →
+            </button>
+          </div>
+          <div>
+            <BoQMockup />
           </div>
         </div>
       </section>
 
-      {/* PRICING */}
-      <section className="section section-white">
+      {/* ── 5. CAPABILITY GRID ───────────────────────────────────────────────── */}
+      <section className="cin-features">
         <div className="inner">
-          <h2 className="display-lg" style={{ textAlign: 'center', marginBottom: '12px' }}>Simple, transparent pricing</h2>
-          <p style={{ color: 'var(--c-600)', fontSize: '18px', textAlign: 'center', marginBottom: '64px' }}>Start free. Scale as you grow. No long-term contracts.</p>
-          <div className="pricing-grid">
+          <p className="cin-section-label-dk">Capabilities</p>
+          <h2 className="cin-section-h-lt">Built for professional work.</h2>
+          <div className="cin-feat-grid">
+            {[
+              { name: 'Automated measurement',
+                desc: 'Reads every wall, opening, span and height directly from your PDF. No manual scaling.' },
+              { name: 'Current UK rates',
+                desc: 'BCIS Q2 2026 labour and material rates, with regional variations included.' },
+              { name: 'Confidence scoring',
+                desc: 'Every item flagged for confidence level. Low-confidence items highlighted for review.' },
+              { name: 'Professional export',
+                desc: 'PDF and Excel output. Your branding on Pro and Studio plans. Ready to issue.' },
+              { name: 'Variation orders',
+                desc: 'Duplicate, edit and track additions with a timestamped audit trail.' },
+              { name: 'Your branding',
+                desc: 'Add your logo, address and colours to every output on Pro and Studio plans.' },
+            ].map((f, i) => (
+              <div key={i} className="cin-feat-item">
+                <p className="cin-feat-name">{f.name}</p>
+                <p className="cin-feat-desc">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 6. PROOF — REAL CLAIMS ONLY ──────────────────────────────────────── */}
+      <section className="cin-proof">
+        <div className="inner">
+          <p className="cin-section-label">What you can rely on</p>
+          <h2 className="cin-section-h">Methodology and data.</h2>
+          <div className="cin-proof-grid">
+            {[
+              { label: 'Accuracy',
+                claim: '94% accuracy on standard UK construction projects.',
+                note: 'Trained on thousands of professional BoQs and UK drawings. Every item is confidence-scored.' },
+              { label: 'Rates',
+                claim: 'BCIS Q2 2026 labour and material rates.',
+                note: 'National schedule with regional variations. Updated quarterly to reflect current market costs.' },
+              { label: 'Data',
+                claim: 'GDPR-compliant. UK-hosted. Deleted after 30 days.',
+                note: 'Encrypted in transit and at rest. Your drawings are never used for model training.' },
+              { label: 'Standard',
+                claim: 'Output structured to NRM2.',
+                note: 'Aligned with the RICS standard method of measurement. Professional QS review always recommended.' },
+              { label: 'Control',
+                claim: 'Human approval is always required.',
+                note: 'Every output is a reviewable draft. Vulcan removes the measurement work — not the professional.' },
+              { label: 'Status',
+                claim: 'Private beta. Built with QS practices.',
+                note: 'We are working with a select group of UK builders and QS firms before full public launch.' },
+            ].map((p, i) => (
+              <div key={i} className="cin-proof-item">
+                <p className="cin-proof-label">{p.label}</p>
+                <p className="cin-proof-claim">{p.claim}</p>
+                <p className="cin-proof-note">{p.note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 7. PRICING ───────────────────────────────────────────────────────── */}
+      <section className="cin-pricing">
+        <div className="inner">
+          <p className="cin-section-label-dk">Pricing</p>
+          <h2 className="cin-section-h-lt">Simple pricing. No surprises.</h2>
+          <p className="cin-pricing-sub">Start free. Scale as you grow. No long-term contracts.</p>
+          <div className="pricing-grid" style={{ marginTop: '64px' }}>
             {plans.map((plan, i) => (
               <div key={i} className={`pricing-card ${plan.rec ? 'rec' : ''}`}>
                 {plan.rec && <p className="pricing-badge">Most popular</p>}
@@ -169,56 +379,90 @@ function LandingPage({ go, tweaks = {}, toast }) {
                 <p className="pricing-price">{plan.price}</p>
                 <p className="pricing-period">{plan.period}</p>
                 <ul className="pricing-feats">
-                  {plan.feats.map((f, j) => <li key={j} className={f.on ? 'on' : 'off'}>{f.t}</li>)}
+                  {plan.feats.map((f, j) =>
+                    <li key={j} className={f.on ? 'on' : 'off'}>{f.t}</li>
+                  )}
                 </ul>
-                <button className={`btn btn-pill ${plan.rec ? 'btn-amber' : 'btn-outline'}`} style={{ width: '100%' }} onClick={plan.action}>{plan.cta}</button>
+                <button
+                  className={`btn btn-pill ${plan.rec ? 'btn-amber' : 'btn-outline'}`}
+                  style={{ width: '100%' }}
+                  onClick={plan.action}
+                >{plan.cta}</button>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* EARLY ACCESS */}
-      <section className="section section-darker">
-        <div className="inner" style={{ textAlign: 'center' }}>
-          <img src="logo-transparent.png" alt="" className="early-access-logo" />
-          <h2 className="display-lg" style={{ color: 'white', marginBottom: '20px' }}>Be among the first</h2>
-          <p style={{ color: 'var(--c-300)', fontSize: '18px', lineHeight: '1.75', marginBottom: '40px', maxWidth: '560px', margin: '0 auto 40px' }}>
-            Vulcan Quanta is in private beta. We are working with a small group of UK builders and QS practices before full launch. No reviews yet — we are building that community now.
-          </p>
-          <button className="btn btn-amber btn-lg btn-pill" onClick={() => go('signup')}>Request early access</button>
-          <p style={{ marginTop: '16px', fontSize: '13px', color: 'var(--c-500)' }}>No credit card required. Cancel anytime.</p>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="section section-white">
+      {/* ── 8. FAQ ───────────────────────────────────────────────────────────── */}
+      <section className="cin-faq">
         <div className="inner">
-          <h2 className="display-lg" style={{ textAlign: 'center', marginBottom: '12px' }}>Frequently asked questions</h2>
-          <p style={{ color: 'var(--c-600)', textAlign: 'center', fontSize: '16px', marginBottom: '64px' }}>Anything else? Email us: hello@vulcanquanta.com</p>
+          <p className="cin-section-label-dk">Questions</p>
+          <h2 className="cin-section-h-lt" style={{ marginBottom: '56px' }}>Frequently asked.</h2>
           <div className="acc-wrap">
             {faqs.map((item, i) => (
               <div key={i} className="acc-item">
-                <div className="acc-hd" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                <button
+                  type="button"
+                  className="acc-hd"
+                  style={{ width: '100%', textAlign: 'left' }}
+                  aria-expanded={openFaq === i}
+                  aria-controls={`faq-body-${i}`}
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
                   <span className="acc-q">{item.q}</span>
-                  <svg className={`acc-chevron ${openFaq === i ? 'open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
+                  <svg
+                    className={`acc-chevron ${openFaq === i ? 'open' : ''}`}
+                    viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
                   </svg>
-                </div>
-                <div className={`acc-body ${openFaq === i ? 'open' : ''}`}>
+                </button>
+                <div id={`faq-body-${i}`} className={`acc-body ${openFaq === i ? 'open' : ''}`}>
                   <p>{item.a}</p>
                 </div>
               </div>
             ))}
           </div>
+          <p style={{ marginTop: '48px', fontSize: '14px', color: 'var(--c-400)' }}>
+            Anything else? <a href="mailto:hello@vulcanquanta.com" style={{ color: 'var(--amber)', fontWeight: 600 }}>hello@vulcanquanta.com</a>
+          </p>
         </div>
       </section>
 
-      {/* SECURITY STRIP */}
+      {/* ── 9. FINAL CTA ─────────────────────────────────────────────────────── */}
+      <section className="cin-cta">
+        <div className="inner" style={{ textAlign: 'center' }}>
+          <p className="cin-eyebrow" style={{ color: 'rgba(255,255,255,0.28)', marginBottom: '28px' }}>Vulcan Quanta</p>
+          <h2 className="cin-cta-h">Cost plans that used<br />to take days.</h2>
+          <p className="cin-cta-sub">Now they don't.</p>
+          <div className="cin-cta-actions">
+            <button className="btn btn-amber btn-pill btn-lg" onClick={() => go('signup')}>
+              Start free
+            </button>
+            <button className="btn-ghost-lt" onClick={() => go('results')}>
+              See a sample BoQ →
+            </button>
+          </div>
+          <p style={{ marginTop: '28px', fontSize: '13px', color: 'rgba(255,255,255,0.22)' }}>
+            No credit card required · Cancel anytime
+          </p>
+        </div>
+      </section>
+
+      {/* Security strip */}
       <div className="sec-strip">
         <div className="inner">
           <div className="sec-items">
-            {[{ icon: '🔒', text: 'GDPR compliant' },{ icon: '🛡️', text: 'Data encrypted at rest' },{ icon: '🇬🇧', text: 'UK servers' },{ icon: '👤', text: 'Human review built in' }].map((s, i) => (
+            {[
+              { icon: '🔒', text: 'GDPR compliant' },
+              { icon: '🛡️', text: 'Encrypted at rest' },
+              { icon: '🇬🇧', text: 'UK-hosted' },
+              { icon: '👤', text: 'Human review built in' },
+            ].map((s, i) => (
               <div key={i} className="sec-item"><span>{s.icon}</span><span>{s.text}</span></div>
             ))}
           </div>
