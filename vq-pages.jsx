@@ -5,24 +5,18 @@ const { BoQMockup } = window;
 // ─── LANDING ────────────────────────────────────────────────────────────────────────
 function LandingPage({ go, tweaks = {}, toast }) {
   const [openFaq, setOpenFaq] = useState(null);
-  const videoRef     = useRef(null);
-  const pinWrapRef   = useRef(null);
-  const taglineRef   = useRef(null);
-  const phase2Ref    = useRef(null);
-  const logoRef      = useRef(null);
+  const videoRef      = useRef(null);
+  const taglineRef    = useRef(null);
   const scrollHintRef = useRef(null);
 
-  // ── GSAP scroll-scrubbed video + text phases ──────────────────────────────────
+  // ── GSAP: fixed-video scroll-scrub across 5× viewport height ─────────────────
   useEffect(() => {
-    const video   = videoRef.current;
-    const pinWrap = pinWrapRef.current;
-    if (!video || !pinWrap) return;
+    const video = videoRef.current;
+    if (!video) return;
 
-    // Respect users who ask for reduced motion: skip the scroll-scrub entirely.
-    // CSS collapses the pin wrap to a static hero; the first frame + tagline show.
-    const reduceMotion = window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion) {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = window.matchMedia?.('(max-width: 768px)').matches;
+    if (reduceMotion || isMobile) {
       video.setAttribute('preload', 'metadata');
       return;
     }
@@ -38,14 +32,13 @@ function LandingPage({ go, tweaks = {}, toast }) {
       if (!gsap || !ScrollTrigger) return;
       gsap.registerPlugin(ScrollTrigger);
 
-      const dur = video.duration || 10;
+      const dur = video.duration || 8;
 
-      // 1. Scrub video currentTime with scroll. Guard against piling up seeks
-      //    on slow decoders by skipping updates while a seek is still in flight.
+      // Scrub video across 5 viewport-heights of total scroll distance.
       const st = ScrollTrigger.create({
-        trigger: pinWrap,
+        trigger: document.documentElement,
         start: 'top top',
-        end: 'bottom bottom',
+        end: () => `+=${window.innerHeight * 5}`,
         scrub: 1,
         onUpdate: (self) => {
           if (video.readyState >= 1 && !video.seeking) {
@@ -55,55 +48,34 @@ function LandingPage({ go, tweaks = {}, toast }) {
       });
       triggers.push(st);
 
-      // 2. Text phase timeline — mapped to full scroll distance
+      // Tagline: visible at scroll-0, holds, fades out in the first viewport's scroll.
       timeline = gsap.timeline({
         scrollTrigger: {
-          trigger: pinWrap,
+          trigger: document.documentElement,
           start: 'top top',
-          end: 'bottom bottom',
-          scrub: 1.8,
+          end: () => `+=${window.innerHeight * 0.85}`,
+          scrub: 1.5,
         },
       });
       if (timeline.scrollTrigger) triggers.push(timeline.scrollTrigger);
 
-      // Phase 1 tagline: fade in 0→10%, hold 10→58%, fade out 58→70%
-      timeline.from(taglineRef.current, { opacity: 0, y: 26, duration: 0.10 }, 0)
-        .to(taglineRef.current,   { opacity: 1,          duration: 0.48 }, 0.10)
-        .to(taglineRef.current,   { opacity: 0, y: -18,  duration: 0.12 }, 0.58);
+      timeline.to(taglineRef.current, { opacity: 0, y: -18, duration: 0.35 }, 0.55);
+      timeline.to(scrollHintRef.current, { opacity: 0, duration: 0.12 }, 0.05);
 
-      // Scroll hint fades out as the first phase ends
-      timeline.to(scrollHintRef.current, { opacity: 0, duration: 0.08 }, 0.12);
-
-      // Phase 2 "upload measure price": fade in 68→78%, hold 78→87%, fade out 87→92%
-      timeline.fromTo(phase2Ref.current,
-          { opacity: 0, y: 22 },
-          { opacity: 1, y: 0,  duration: 0.10 }, 0.68)
-        .to(phase2Ref.current,   { opacity: 1,          duration: 0.09 }, 0.78)
-        .to(phase2Ref.current,   { opacity: 0,          duration: 0.05 }, 0.87);
-
-      // Phase 3 logo reveal: fade in 93→100%
-      timeline.fromTo(logoRef.current,
-          { opacity: 0, scale: 0.94 },
-          { opacity: 1, scale: 1,    duration: 0.07, ease: 'power2.out' }, 0.93);
-
-      // Recalculate trigger positions once everything below the fold has laid
-      // out (fonts swapped, BoQ mockup rendered) so the scrub maps accurately.
       ScrollTrigger.refresh();
       onLoad = () => ScrollTrigger.refresh();
       window.addEventListener('load', onLoad);
     };
 
-    // iOS Safari will not paint video frames from currentTime seeks until the
-    // element has been played at least once. Prime it on the first user gesture.
+    // iOS Safari won't paint seeks until the video has played once.
     primeHandler = () => {
       const p = video.play();
-      if (p && p.then) p.then(() => video.pause()).catch(() => {});
+      if (p?.then) p.then(() => video.pause()).catch(() => {});
       else { try { video.pause(); } catch (e) {} }
     };
     window.addEventListener('touchstart', primeHandler, { once: true, passive: true });
     window.addEventListener('pointerdown', primeHandler, { once: true });
 
-    // Small delay so the GSAP CDN scripts have executed before we register.
     const timer = setTimeout(() => {
       if (video.readyState >= 1) {
         init();
@@ -119,12 +91,10 @@ function LandingPage({ go, tweaks = {}, toast }) {
       if (onLoad) window.removeEventListener('load', onLoad);
       window.removeEventListener('touchstart', primeHandler);
       window.removeEventListener('pointerdown', primeHandler);
-      triggers.forEach(t => t && t.kill());
+      triggers.forEach(t => t?.kill());
       if (timeline) timeline.kill();
       if (window.gsap) {
-        window.gsap.killTweensOf([
-          taglineRef.current, phase2Ref.current, logoRef.current, scrollHintRef.current,
-        ]);
+        window.gsap.killTweensOf([taglineRef.current, scrollHintRef.current]);
       }
     };
   }, []);
@@ -177,69 +147,47 @@ function LandingPage({ go, tweaks = {}, toast }) {
 
   return (
     <>
-      {/* ── 1. PINNED CINEMATIC HERO ─────────────────────────────────────────── */}
-      <div ref={pinWrapRef} className="cin-pin-wrap">
-        <div className="cin-sticky">
-          <video
-            ref={videoRef}
-            className="cin-video"
-            src="hero.mp4"
-            muted
-            playsInline
-            preload="auto"
-            aria-hidden="true"
-            tabIndex={-1}
-          />
-          <div className="cin-overlay" />
+      {/* ── FIXED VIDEO BACKGROUND — sits behind the entire page at z-index 0 ── */}
+      <div className="cin-video-bg" aria-hidden="true">
+        <video
+          ref={videoRef}
+          className="cin-video"
+          src="hero.mp4"
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+        <div className="cin-overlay" />
+      </div>
 
-          {/* Phase 1 — Tagline */}
-          <div ref={taglineRef} className="cin-content">
-            <p className="cin-eyebrow">Vulcan Quanta</p>
-            <h1 className="cin-h1">
-              Cost plans that used<br />to take days.<br />Now they don't.
-            </h1>
-            <button
-              className="btn btn-amber btn-pill"
-              style={{ padding: '14px 28px', fontSize: '15px', fontWeight: 600 }}
-              onClick={() => go('signup')}
-            >
-              Start free
-            </button>
-            <p className="cin-hero-note">
-              No credit card required · UK quantity surveying · AI-powered
-            </p>
-          </div>
-
-          {/* Phase 2 — Process hint */}
-          <div ref={phase2Ref} className="cin-content cin-phase2">
-            <p className="cin-eyebrow">The process</p>
-            <p className="cin-h2">Upload. Measure. Price.</p>
-            <p className="cin-phase2-sub">
-              From drawing to itemised Bill of Quantities. Under 2 minutes.
-            </p>
-          </div>
-
-          {/* Phase 3 — Logo reveal (inline SVG: transparent, scalable, always renders) */}
-          <div ref={logoRef} className="cin-logo-reveal" role="img" aria-label="Vulcan Quanta">
-            <svg className="cin-logo-img" viewBox="0 0 120 80" fill="none"
-                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <polyline points="8,12 33,66 58,12" stroke="#FAFAFA"
-                        strokeWidth="11" strokeLinejoin="miter" strokeLinecap="square" />
-              <circle cx="89" cy="40" r="25" stroke="var(--amber)" strokeWidth="11" />
-              <line x1="95" y1="50" x2="113" y2="71" stroke="var(--amber)"
-                    strokeWidth="11" strokeLinecap="square" />
-            </svg>
-            <p className="cin-logo-wordmark">VULCAN QUANTA</p>
-            <p className="cin-logo-tagline">AI-Powered Quantity Surveying</p>
-          </div>
-
-          {/* Scroll cue */}
-          <div ref={scrollHintRef} className="cin-scroll-hint" aria-hidden="true">
-            <div className="cin-scroll-line" />
-            <span>Scroll</span>
-          </div>
+      {/* ── FIXED TAGLINE OVERLAY — z-index 5, fades out as user scrolls ────── */}
+      <div className="cin-phase-wrap">
+        <div ref={taglineRef}>
+          <p className="cin-eyebrow">Vulcan Quanta</p>
+          <h1 className="cin-h1">
+            Cost plans that used<br />to take days.<br />Now they don't.
+          </h1>
+          <button
+            className="btn btn-amber btn-pill"
+            style={{ padding: '14px 28px', fontSize: '15px', fontWeight: 600 }}
+            onClick={() => go('signup')}
+          >
+            Start free
+          </button>
+          <p className="cin-hero-note">
+            No credit card required · UK quantity surveying · AI-powered
+          </p>
+        </div>
+        <div ref={scrollHintRef} className="cin-scroll-hint" aria-hidden="true">
+          <div className="cin-scroll-line" />
+          <span>Scroll</span>
         </div>
       </div>
+
+      {/* ── TRANSPARENT SPACER — creates 100vh of scroll room for the video ─── */}
+      <div className="cin-hero-spacer" />
 
       {/* ── 2. EDITORIAL STATEMENT ───────────────────────────────────────────── */}
       <section className="cin-statement">
