@@ -7,9 +7,10 @@ import json                        # json parses/serialises JSON — like System
 import difflib                     # difflib is a stdlib module for comparing sequences; used for fuzzy string matching
 import pdfplumber                  # third-party library that opens PDFs and extracts text page by page
 import anthropic                   # official Anthropic Python SDK — wraps the Claude REST API
-from flask import Flask, request, jsonify  # Flask = web framework; request = current HTTP request; jsonify = creates a JSON Response
+from flask import Flask, request, jsonify, send_file  # send_file streams a file/buffer as an HTTP response — like File() in C# MVC
 from flask_cors import CORS        # CORS middleware so the React SPA (different port in dev) can call this API
 from rates import RATES_DB         # our local dict of 2025-2026 UK construction rates (material + labour per unit)
+from export_pdf import generate_boq_pdf  # ReportLab PDF generator for the /export endpoint
 
 app = Flask(__name__)              # create the Flask app instance; __name__ tells Flask the root path (like WebApplication.CreateBuilder in C#)
 CORS(app)                          # allow all origins on every route — equivalent to app.UseCors() in ASP.NET Core
@@ -187,6 +188,32 @@ def process_pdf():                         # Flask calls this function when a ma
     boq_data = _enrich_boq(boq_data)               # look up rates in RATES_DB and add material_rate, labour_rate, line_total to every item
 
     return jsonify(boq_data), 200                  # serialise the Python dict/list back to a JSON HTTP response — like return Ok(boqData) in C# Web API
+
+@app.route("/export", methods=["POST"])   # POST because we send the BoQ JSON in the request body, not a URL param
+def export_pdf():                          # Flask calls this when POST /export is received
+    # request.get_json() parses the JSON body — like JsonSerializer.Deserialize in C#
+    # force=True accepts the body even if Content-Type is not application/json
+    # silent=True returns None instead of raising an exception on parse failure
+    boq_json = request.get_json(force=True, silent=True)
+    if not boq_json:                       # guard: body was empty or not valid JSON
+        return jsonify({"error": "Request body must be a JSON BoQ object."}), 400
+
+    try:
+        pdf_bytes = generate_boq_pdf(boq_json)   # build the PDF; returns raw bytes
+    except ValueError as exc:             # raised by generate_boq_pdf if JSON has no trade groups
+        return jsonify({"error": str(exc)}), 422
+    except Exception as exc:              # catch any unexpected ReportLab error
+        return jsonify({"error": f"PDF generation failed: {exc}"}), 500
+
+    # Wrap the bytes in a BytesIO so send_file can stream it as a download.
+    # send_file is equivalent to File(bytes, "application/pdf", "filename.pdf") in C# MVC.
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=True,                # triggers "Save As" in the browser (Content-Disposition: attachment)
+        download_name='bill-of-quantities.pdf',
+    )
+
 
 if __name__ == "__main__":                         # only runs when executed directly (python app.py), not when imported by a WSGI server — like a Program.Main guard in C#
     app.run(debug=True, port=5001)                 # start the Flask dev server on port 5001; debug=True enables hot-reload (never use in production)
