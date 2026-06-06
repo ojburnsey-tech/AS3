@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — Vulcan Quanta</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.10), 0 4px 16px rgba(0,0,0,.06);
+      padding: 40px 36px 36px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .wordmark { font-size: 18px; font-weight: 700; letter-spacing: -.3px; color: #111; }
+    .tagline  { font-size: 12px; color: #888; margin-top: 3px; margin-bottom: 28px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e5e5;
+      margin-bottom: 24px;
+      gap: 0;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 9px 0;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #888;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+      user-select: none;
+    }
+    .tab.active { color: #111; border-bottom-color: #111; }
+    .tab:hover:not(.active) { color: #444; }
+
+    /* ── Form fields ── */
+    label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    input[type="email"],
+    input[type="password"] {
+      display: block;
+      width: 100%;
+      padding: 9px 11px;
+      font-size: 14px;
+      border: 1px solid #d4d4d4;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      margin-bottom: 14px;
+      color: #111;
+      background: #fff;
+    }
+    input:focus {
+      border-color: #111;
+      box-shadow: 0 0 0 2px rgba(0,0,0,.07);
+    }
+
+    /* ── Submit button ── */
+    button[type="submit"] {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #111;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s;
+      letter-spacing: .01em;
+    }
+    button[type="submit"]:hover:not(:disabled) { background: #333; }
+    button[type="submit"]:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* ── Alert banners ── */
+    .alert {
+      display: none;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+    .alert-error   { background: #fff5f5; border: 1px solid #fca5a5; color: #b91c1c; }
+    .alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+
+    /* ── Footer link ── */
+    .back {
+      display: block;
+      margin-top: 22px;
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      text-decoration: none;
+    }
+    .back:hover { color: #333; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="wordmark">Vulcan Quanta</div>
+    <div class="tagline">AI-powered quantity surveying</div>
+
+    <div class="tabs" role="tablist">
+      <div class="tab active" role="tab" data-mode="login"  onclick="switchTab('login')">Sign in</div>
+      <div class="tab"        role="tab" data-mode="signup" onclick="switchTab('signup')">Create account</div>
+    </div>
+
+    <div id="err" class="alert alert-error"   role="alert"></div>
+    <div id="ok"  class="alert alert-success" role="alert"></div>
+
+    <form id="form" novalidate onsubmit="handleSubmit(event)">
+      <label for="email">Email address</label>
+      <input id="email" type="email" placeholder="you@company.com"
+             autocomplete="email" required autofocus />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••"
+             autocomplete="current-password" required minlength="6" />
+
+      <button id="btn" type="submit">Sign in</button>
+    </form>
+
+    <a class="back" href="/">← Back to app</a>
+  </div>
+
+  <script>
+    // Current tab mode — 'login' or 'signup'
+    let mode = 'login';
+
+    // Switch between login and signup tabs
+    function switchTab(m) {
+      mode = m;
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.mode === m);
+      });
+      document.getElementById('btn').textContent =
+        m === 'login' ? 'Sign in' : 'Create account';
+      // Update password autocomplete hint
+      document.getElementById('password').autocomplete =
+        m === 'login' ? 'current-password' : 'new-password';
+      hide('err');
+      hide('ok');
+    }
+
+    // Show / hide the alert banners
+    function show(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    function hide(id) {
+      const el = document.getElementById(id);
+      el.style.display = 'none';
+      el.textContent   = '';
+    }
+
+    // Form submission handler — uses fetch() to call the Flask auth endpoints
+    async function handleSubmit(e) {
+      e.preventDefault();         // prevent the browser's default full-page form POST
+      hide('err');
+      hide('ok');
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = document.getElementById('btn');
+
+      // Basic client-side validation before hitting the server
+      if (!email || !password) {
+        show('err', 'Please enter your email address and password.');
+        return;
+      }
+      if (mode === 'signup' && password.length < 6) {
+        show('err', 'Password must be at least 6 characters.');
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = mode === 'login' ? 'Signing in…' : 'Creating account…';
+
+      const url = mode === 'login' ? '/login' : '/signup';
+
+      try {
+        // credentials: 'include' ensures the browser sends and stores the session cookie
+        // even when this page is served from a different port than the API in development
+        const res  = await fetch(url, {
+          method:      'POST',
+          headers:     { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body:        JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          // Show the error message returned by Flask (e.g. "Invalid credentials")
+          show('err', data.error || 'Something went wrong. Please try again.');
+          btn.disabled    = false;
+          btn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
+          return;
+        }
+
+        if (mode === 'signup' && data.message && data.message.includes('email')) {
+          // Supabase email confirmation is enabled — tell the user to check their inbox
+          show('ok', data.message);
+          btn.disabled    = false;
+          btn.textContent = 'Create account';
+        } else {
+          // Login succeeded (or signup with auto-confirm) — redirect to the main app
+          window.location.href = '/';
+        }
+
+      } catch (err) {
+        // fetch() only throws on network-level failures (no connection, DNS error, etc.)
+        show('err', 'Network error — could not reach the server. Is the API running?');
+        btn.disabled    = false;
+        btn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
+      }
+    }
+  </script>
+</body>
+</html>

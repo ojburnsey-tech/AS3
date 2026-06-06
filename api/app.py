@@ -7,13 +7,42 @@ import json                        # json parses/serialises JSON — like System
 import difflib                     # difflib is a stdlib module for comparing sequences; used for fuzzy string matching
 import pdfplumber                  # third-party library that opens PDFs and extracts text page by page
 import anthropic                   # official Anthropic Python SDK — wraps the Claude REST API
-from flask import Flask, request, jsonify, send_file  # send_file streams a file/buffer as an HTTP response — like File() in C# MVC
+from flask import Flask, request, jsonify, send_file, session, send_from_directory  # session = server-signed cookie dict, like HttpContext.Session in ASP.NET
 from flask_cors import CORS        # CORS middleware so the React SPA (different port in dev) can call this API
+from supabase import create_client # supabase-py v2 — wraps the Supabase REST API for auth
 from rates import RATES_DB         # our local dict of 2025-2026 UK construction rates (material + labour per unit)
 from export_pdf import generate_boq_pdf  # ReportLab PDF generator for the /export endpoint
 
 app = Flask(__name__)              # create the Flask app instance; __name__ tells Flask the root path (like WebApplication.CreateBuilder in C#)
-CORS(app)                          # allow all origins on every route — equivalent to app.UseCors() in ASP.NET Core
+
+# Flask sessions are signed cookies; SECRET_KEY is the signing key.
+# Without it sessions cannot be trusted.  Set this env var in production —
+# the urandom fallback regenerates on every restart, invalidating all sessions.
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY') or os.urandom(32)
+
+# supports_credentials=True allows the browser to send cookies on cross-origin
+# requests (needed when the React SPA and this API run on different ports).
+# Flask-CORS responds with the requesting Origin instead of '*' when this is set.
+CORS(app, supports_credentials=True)
+
+# ── Supabase client ───────────────────────────────────────────────────────────────────
+# The anon key is sufficient for client-side auth operations (sign up, sign in).
+# Read from environment so the key never appears in source — like IConfiguration in C#.
+_SB_URL = os.environ.get('SUPABASE_URL', '')
+_SB_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
+# create_client returns None-safe — we guard every usage with `if not _supabase` below
+_supabase = create_client(_SB_URL, _SB_KEY) if (_SB_URL and _SB_KEY) else None
+
+
+def _auth_error_msg(exc: Exception) -> str:
+    """Extract a readable sentence from a supabase-py / gotrue exception.
+    gotrue wraps errors as JSON strings; fall back to the raw str() if parsing fails."""
+    raw = str(exc)
+    try:
+        data = json.loads(raw)                         # gotrue may wrap: {"code":..., "message":"..."}
+        return data.get('message') or data.get('msg') or raw
+    except Exception:
+        return raw or "Authentication failed."
 
 SYSTEM_PROMPT = (                  # module-level constant so the prompt is defined once and never duplicated (like static readonly string in C#)
     "You are a UK quantity surveyor. Given the following text extracted from a "
@@ -129,8 +158,95 @@ def _enrich_boq(boq_data):
     return boq_data   # return the same object so callers can chain: data = _enrich_boq(data)
 
 
+# ── Auth routes ──────────────────────────────────────────────────────────────────────
+
+@app.route("/login", methods=["GET"])      # GET /login serves the standalone HTML login page
+def login_page():
+    # send_from_directory serves a file from a directory — like PhysicalFileResult in C# MVC.
+    # os.path.abspath(__file__) gives the absolute path to app.py; dirname gives its folder.
+    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), 'login.html')
+
+
+@app.route("/login", methods=["POST"])     # POST /login authenticates and writes the JWT to the session
+def login():
+    if not _supabase:                      # guard: fail clearly if env vars are missing
+        return jsonify({"error": "Auth not configured — set SUPABASE_URL and SUPABASE_ANON_KEY."}), 503
+
+    body     = request.get_json(force=True, silent=True) or {}   # parse JSON body; {} if empty
+    email    = (body.get('email')    or '').strip()               # .strip() removes accidental whitespace
+    password =  body.get('password') or ''
+    if not email or not password:          # validate before hitting Supabase to save a round-trip
+        return jsonify({"error": "email and password are required."}), 400
+
+    try:
+        # sign_in_with_password is synchronous in supabase-py; it POSTs to Supabase's /auth/v1/token
+        res = _supabase.auth.sign_in_with_password({"email": email, "password": password})
+
+        # Store tokens in the Flask session cookie (signed with SECRET_KEY, not encrypted).
+        # This is equivalent to writing to HttpContext.Session in ASP.NET Core.
+        session['access_token']  = res.session.access_token   # JWT; expires in ~1 h by default
+        session['refresh_token'] = res.session.refresh_token  # long-lived; used to renew the JWT
+        session['user_id']       = res.user.id                # Supabase user UUID
+        session['user_email']    = res.user.email
+
+        return jsonify({"message": "Logged in.", "email": res.user.email}), 200
+
+    except Exception as exc:
+        return jsonify({"error": _auth_error_msg(exc)}), 401   # 401 Unauthorized on bad credentials
+
+
+@app.route("/signup", methods=["POST"])    # POST /signup registers a new Supabase user
+def signup():
+    if not _supabase:
+        return jsonify({"error": "Auth not configured — set SUPABASE_URL and SUPABASE_ANON_KEY."}), 503
+
+    body     = request.get_json(force=True, silent=True) or {}
+    email    = (body.get('email')    or '').strip()
+    password =  body.get('password') or ''
+    if not email or not password:
+        return jsonify({"error": "email and password are required."}), 400
+    if len(password) < 6:                 # Supabase enforces 6-char minimum; check here for a clear message
+        return jsonify({"error": "Password must be at least 6 characters."}), 400
+
+    try:
+        res = _supabase.auth.sign_up({"email": email, "password": password})
+
+        # res.session is set immediately if Supabase email confirmation is disabled.
+        # If confirmation is required, res.session is None — user must verify first.
+        if res.session:
+            session['access_token']  = res.session.access_token
+            session['refresh_token'] = res.session.refresh_token
+            session['user_id']       = res.user.id
+            session['user_email']    = res.user.email
+            return jsonify({"message": "Account created. You are now signed in."}), 201
+
+        return jsonify({"message": "Account created. Check your email to confirm, then sign in."}), 201
+
+    except Exception as exc:
+        return jsonify({"error": _auth_error_msg(exc)}), 400   # 400 Bad Request (e.g. email already in use)
+
+
+@app.route("/logout", methods=["POST"])    # POST /logout clears the Flask session
+def logout():
+    # session.clear() removes all keys from the signed cookie — like Session.Clear() in ASP.NET.
+    # The Supabase JWT expires on its own (default 3600 s); we do not call supabase.auth.sign_out()
+    # here because that would require setting the per-request session on the shared client.
+    session.clear()
+    return jsonify({"message": "Logged out."}), 200
+
+
+@app.route("/me", methods=["GET"])         # lightweight session-check endpoint for the frontend
+def me():
+    if not session.get('access_token'):    # no session → 401 so the SPA knows to redirect to /login
+        return jsonify({"error": "Not authenticated."}), 401
+    return jsonify({"email": session.get('user_email'), "user_id": session.get('user_id')}), 200
+
+
 @app.route("/process", methods=["POST"])   # decorator registers this function as POST /process handler — like [HttpPost("process")] in C# Web API
 def process_pdf():                         # Flask calls this function when a matching request arrives
+    if not session.get('access_token'):    # guard: reject unauthenticated requests before doing any work
+        return jsonify({"error": "Authentication required. Please sign in.", "login_url": "/login"}), 401
+
     if "file" not in request.files:        # request.files is a dict of uploaded files keyed by form field name (like IFormFileCollection in C#)
         return jsonify({"error": "No 'file' field in request. POST multipart/form-data with field name 'file'."}), 400  # 400 Bad Request
 
