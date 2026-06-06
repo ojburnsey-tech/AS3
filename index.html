@@ -163,29 +163,6 @@
     }
     .mobile-link { font-size: 16px; color: rgba(255,255,255,0.7); cursor: pointer; }
 
-    /* ── HERO ──────────────────────────────────────────────────────────────── */
-    .hero-sec { background: var(--c-950); padding: 160px 0 140px; }
-    .hero-inner {
-      max-width: var(--max-w); margin: 0 auto; padding: 0 var(--px);
-      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
-    }
-    .hero-h1 {
-      font-family: var(--font-d); font-size: 76px; font-weight: 800;
-      letter-spacing: -0.04em; line-height: 1.05; color: white; margin-bottom: 24px;
-    }
-    .accent-amber { color: var(--amber); }
-    .hero-sub { font-size: 19px; line-height: 1.75; color: var(--c-300); margin-bottom: 40px; max-width: 480px; }
-    .hero-ctas { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
-    .hero-sec-link { font-size: 15px; font-weight: 600; color: var(--c-300); cursor: pointer; transition: color var(--t); }
-    .hero-sec-link:hover { color: white; }
-    .hero-trust { font-size: 13px; color: var(--c-500); }
-
-    /* ── LOGOS STRIP ─────────────────────────────────────────────────────────────── */
-    .logos-strip { background: var(--c-950); padding: 40px 0; border-bottom: 1px solid var(--c-800); }
-    .logos-label { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-400); margin-bottom: 28px; }
-    .logos-row { display: flex; gap: 20px; justify-content: center; align-items: center; flex-wrap: wrap; padding: 0 var(--px); max-width: var(--max-w); margin: 0 auto; }
-    .logo-ph { width: 110px; height: 36px; border: 1px solid var(--c-800); border-radius: 6px; background: rgba(255,255,255,0.02); }
-
     /* ── BOQ MOCKUP ─────────────────────────────────────────────────────────────── */
     .boq-mockup { background: white; border-radius: 12px; box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04); overflow: hidden; }
     .boq-mock-hdr { background: var(--c-950); padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 1px solid var(--c-800); }
@@ -211,22 +188,6 @@
     .boq-mock-ftr p { font-size: 10px; color: var(--c-400); font-style: italic; }
     .r { text-align: right; font-variant-numeric: tabular-nums; }
 
-    /* ── HOW IT WORKS ────────────────────────────────────────────────────────────── */
-    .steps-wrap { position: relative; }
-    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-    .steps-connector { position: absolute; top: 27px; left: calc(16.67% + 4px); right: calc(16.67% + 4px); height: 1px; background: var(--c-200); z-index: 0; }
-    .step { text-align: center; padding: 0 32px; position: relative; z-index: 1; }
-    .step-num { width: 56px; height: 56px; background: var(--amber); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; font-family: var(--font-d); margin: 0 auto 24px; }
-    .step-title { font-family: var(--font-d); font-size: 18px; font-weight: 700; color: var(--c-950); margin-bottom: 12px; }
-    .step-body { font-size: 15px; color: var(--c-600); line-height: 1.65; }
-
-    /* ── ROI ─────────────────────────────────────────────────────────────────── */
-    .roi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px; margin-bottom: 48px; }
-    .roi-num { font-family: var(--font-d); font-size: 56px; font-weight: 800; letter-spacing: -0.03em; color: var(--amber); line-height: 1; margin-bottom: 8px; }
-    .roi-lbl { font-size: 14px; color: var(--c-300); }
-    .roi-callout { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 32px; font-size: 15px; color: var(--c-300); line-height: 1.8; }
-    .roi-callout strong { color: white; }
-
     /* ── FEATURES ─────────────────────────────────────────────────────────────── */
     .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 64px; }
     .feat-card { padding: 32px; border: 1px solid var(--c-200); border-radius: 12px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: box-shadow var(--t), transform var(--t), border-color var(--t); }
@@ -234,14 +195,6 @@
     .feat-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--c-100); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
     .feat-name { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: var(--c-950); margin-bottom: 8px; }
     .feat-desc { font-size: 14px; color: var(--c-600); line-height: 1.65; }
-
-    /* ── TRUST ─────────────────────────────────────────────────────────────────── */
-    .trust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
-    .trust-pt { display: flex; gap: 16px; margin-bottom: 32px; }
-    .trust-check { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: rgba(16,185,129,0.14); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--green); font-weight: 700; margin-top: 3px; }
-    .trust-hd { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: white; margin-bottom: 6px; }
-    .trust-body { font-size: 14px; color: var(--c-300); line-height: 1.65; }
-    .trust-aside { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 40px; }
 
     /* ── PRICING ─────────────────────────────────────────────────────────────── */
     .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -257,13 +210,6 @@
     .pricing-feats li.on::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 2px; font-size: 13px; }
     .pricing-feats li.off { opacity: 0.45; }
     .pricing-feats li.off::before { content: '—'; color: var(--c-400); flex-shrink: 0; }
-
-    /* ── TESTIMONIALS ────────────────────────────────────────────────────────────── */
-    .testi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-    .testi-block { padding: 32px; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; }
-    .testi-q { font-size: 17px; font-style: italic; color: var(--c-200); line-height: 1.7; margin-bottom: 24px; }
-    .testi-name { font-family: var(--font-d); font-weight: 700; color: white; font-size: 14px; margin-bottom: 2px; }
-    .testi-role { font-size: 13px; color: var(--c-400); }
 
     /* ── FAQ ─────────────────────────────────────────────────────────────────── */
     .acc-wrap { max-width: 720px; margin: 0 auto; }
@@ -431,25 +377,6 @@
     }
     .will-reveal.appeared { opacity: 1; transform: translateY(0); }
 
-    /* Hero entrance */
-    @keyframes heroIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    .hero-sec .hero-logo-mark   { animation: heroIn 0.55s ease both; }
-    .hero-sec .hero-h1          { animation: heroIn 0.55s 0.1s ease both; }
-    .hero-sec .hero-sub         { animation: heroIn 0.55s 0.18s ease both; }
-    .hero-sec .hero-ctas        { animation: heroIn 0.55s 0.24s ease both; }
-    .hero-sec .hero-trust       { animation: heroIn 0.55s 0.30s ease both; }
-    .hero-inner > div:last-child { animation: heroIn 0.65s 0.12s ease both; }
-
-    /* Logo helpers */
-    .hero-logo-mark {
-      height: 68px; display: block; margin-bottom: 28px;
-      filter: drop-shadow(0 0 2px rgba(255,255,255,0.1)) brightness(1.12);
-    }
-    .early-access-logo {
-      height: 80px; display: block; margin: 0 auto 36px;
-      filter: brightness(0) invert(1) drop-shadow(0 2px 14px rgba(249,115,22,0.4));
-    }
-
     /* ── MOBILE ──────────────────────────────────────────────────────────────── */
     @media (max-width: 1024px) {
       :root { --px: 32px; }
@@ -607,7 +534,16 @@
     /* Logo reveal */
     .cin-logo-img {
       height: 110px;
-      filter: drop-shadow(0 0 48px rgba(249,115,22,0.25)) brightness(1.06);
+      width: auto;
+      filter: drop-shadow(0 0 48px rgba(249,115,22,0.25));
+    }
+    .cin-logo-wordmark {
+      margin-top: 28px;
+      font-family: var(--font-d);
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: #fff;
     }
     .cin-logo-tagline {
       margin-top: 22px;
@@ -889,6 +825,16 @@
       .cin-statement, .cin-process, .cin-split, .cin-features,
       .cin-proof, .cin-pricing, .cin-faq, .cin-cta { padding: 80px 0; }
     }
+
+    /* ── REDUCED MOTION — collapse the scroll-scrub into a static hero ───────── */
+    @media (prefers-reduced-motion: reduce) {
+      .cin-pin-wrap { height: auto !important; }
+      .cin-sticky   { position: relative; height: 100vh; min-height: 560px; }
+      .cin-scroll-line { animation: none; }
+      /* Phase 1 stays visible; later phases never animate in */
+      .cin-content:not(.cin-phase2) { opacity: 1 !important; }
+      .cin-phase2, .cin-logo-reveal { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -904,7 +850,7 @@ const {
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "amber",
-  "headline": "Price any job in 2 minutes, not 8 hours.",
+  "headline": "Cost plans that used to take days. Now they don't.",
   "cta": "Start free"
 }/*EDITMODE-END*/;
 

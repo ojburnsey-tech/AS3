@@ -5,17 +5,33 @@ const { BoQMockup } = window;
 // ─── LANDING ────────────────────────────────────────────────────────────────────────
 function LandingPage({ go, tweaks = {}, toast }) {
   const [openFaq, setOpenFaq] = useState(null);
-  const videoRef    = useRef(null);
-  const pinWrapRef  = useRef(null);
-  const taglineRef  = useRef(null);
-  const phase2Ref   = useRef(null);
-  const logoRef     = useRef(null);
+  const videoRef     = useRef(null);
+  const pinWrapRef   = useRef(null);
+  const taglineRef   = useRef(null);
+  const phase2Ref    = useRef(null);
+  const logoRef      = useRef(null);
+  const scrollHintRef = useRef(null);
 
   // ── GSAP scroll-scrubbed video + text phases ──────────────────────────────────
   useEffect(() => {
     const video   = videoRef.current;
     const pinWrap = pinWrapRef.current;
     if (!video || !pinWrap) return;
+
+    // Respect users who ask for reduced motion: skip the scroll-scrub entirely.
+    // CSS collapses the pin wrap to a static hero; the first frame + tagline show.
+    const reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      video.setAttribute('preload', 'metadata');
+      return;
+    }
+
+    let triggers = [];
+    let timeline = null;
+    let metaHandler = null;
+    let primeHandler = null;
+    let onLoad = null;
 
     const init = () => {
       const { gsap, ScrollTrigger } = window;
@@ -24,21 +40,23 @@ function LandingPage({ go, tweaks = {}, toast }) {
 
       const dur = video.duration || 10;
 
-      // 1. Scrub video currentTime with scroll
-      ScrollTrigger.create({
+      // 1. Scrub video currentTime with scroll. Guard against piling up seeks
+      //    on slow decoders by skipping updates while a seek is still in flight.
+      const st = ScrollTrigger.create({
         trigger: pinWrap,
         start: 'top top',
         end: 'bottom bottom',
         scrub: 1,
         onUpdate: (self) => {
-          if (video.readyState >= 1) {
+          if (video.readyState >= 1 && !video.seeking) {
             video.currentTime = self.progress * dur;
           }
         },
       });
+      triggers.push(st);
 
       // 2. Text phase timeline — mapped to full scroll distance
-      const tl = gsap.timeline({
+      timeline = gsap.timeline({
         scrollTrigger: {
           trigger: pinWrap,
           start: 'top top',
@@ -46,45 +64,67 @@ function LandingPage({ go, tweaks = {}, toast }) {
           scrub: 1.8,
         },
       });
+      if (timeline.scrollTrigger) triggers.push(timeline.scrollTrigger);
 
       // Phase 1 tagline: fade in 0→10%, hold 10→58%, fade out 58→70%
-      tl.from(taglineRef.current, { opacity: 0, y: 26, duration: 0.10 }, 0)
+      timeline.from(taglineRef.current, { opacity: 0, y: 26, duration: 0.10 }, 0)
         .to(taglineRef.current,   { opacity: 1,          duration: 0.48 }, 0.10)
         .to(taglineRef.current,   { opacity: 0, y: -18,  duration: 0.12 }, 0.58);
 
+      // Scroll hint fades out as the first phase ends
+      timeline.to(scrollHintRef.current, { opacity: 0, duration: 0.08 }, 0.12);
+
       // Phase 2 "upload measure price": fade in 68→78%, hold 78→87%, fade out 87→92%
-      tl.fromTo(phase2Ref.current,
+      timeline.fromTo(phase2Ref.current,
           { opacity: 0, y: 22 },
           { opacity: 1, y: 0,  duration: 0.10 }, 0.68)
         .to(phase2Ref.current,   { opacity: 1,          duration: 0.09 }, 0.78)
         .to(phase2Ref.current,   { opacity: 0,          duration: 0.05 }, 0.87);
 
       // Phase 3 logo reveal: fade in 93→100%
-      tl.fromTo(logoRef.current,
+      timeline.fromTo(logoRef.current,
           { opacity: 0, scale: 0.94 },
           { opacity: 1, scale: 1,    duration: 0.07, ease: 'power2.out' }, 0.93);
+
+      // Recalculate trigger positions once everything below the fold has laid
+      // out (fonts swapped, BoQ mockup rendered) so the scrub maps accurately.
+      ScrollTrigger.refresh();
+      onLoad = () => ScrollTrigger.refresh();
+      window.addEventListener('load', onLoad);
     };
 
-    let timer;
-    const startInit = () => {
-      // Small delay so GSAP CDN scripts have executed
-      timer = setTimeout(() => {
-        if (video.readyState >= 1) {
-          init();
-        } else {
-          video.addEventListener('loadedmetadata', init, { once: true });
-        }
-      }, 80);
+    // iOS Safari will not paint video frames from currentTime seeks until the
+    // element has been played at least once. Prime it on the first user gesture.
+    primeHandler = () => {
+      const p = video.play();
+      if (p && p.then) p.then(() => video.pause()).catch(() => {});
+      else { try { video.pause(); } catch (e) {} }
     };
-    startInit();
+    window.addEventListener('touchstart', primeHandler, { once: true, passive: true });
+    window.addEventListener('pointerdown', primeHandler, { once: true });
+
+    // Small delay so the GSAP CDN scripts have executed before we register.
+    const timer = setTimeout(() => {
+      if (video.readyState >= 1) {
+        init();
+      } else {
+        metaHandler = init;
+        video.addEventListener('loadedmetadata', metaHandler, { once: true });
+      }
+    }, 80);
 
     return () => {
       clearTimeout(timer);
-      if (window.ScrollTrigger) {
-        window.ScrollTrigger.getAll().forEach(t => t.kill());
-      }
+      if (metaHandler) video.removeEventListener('loadedmetadata', metaHandler);
+      if (onLoad) window.removeEventListener('load', onLoad);
+      window.removeEventListener('touchstart', primeHandler);
+      window.removeEventListener('pointerdown', primeHandler);
+      triggers.forEach(t => t && t.kill());
+      if (timeline) timeline.kill();
       if (window.gsap) {
-        window.gsap.killTweensOf([taglineRef.current, phase2Ref.current, logoRef.current]);
+        window.gsap.killTweensOf([
+          taglineRef.current, phase2Ref.current, logoRef.current, scrollHintRef.current,
+        ]);
       }
     };
   }, []);
@@ -147,6 +187,8 @@ function LandingPage({ go, tweaks = {}, toast }) {
             muted
             playsInline
             preload="auto"
+            aria-hidden="true"
+            tabIndex={-1}
           />
           <div className="cin-overlay" />
 
@@ -177,14 +219,22 @@ function LandingPage({ go, tweaks = {}, toast }) {
             </p>
           </div>
 
-          {/* Phase 3 — Logo reveal */}
-          <div ref={logoRef} className="cin-logo-reveal">
-            <img src="logo-transparent.png" alt="Vulcan Quanta" className="cin-logo-img" />
+          {/* Phase 3 — Logo reveal (inline SVG: transparent, scalable, always renders) */}
+          <div ref={logoRef} className="cin-logo-reveal" role="img" aria-label="Vulcan Quanta">
+            <svg className="cin-logo-img" viewBox="0 0 120 80" fill="none"
+                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polyline points="8,12 33,66 58,12" stroke="#FAFAFA"
+                        strokeWidth="11" strokeLinejoin="miter" strokeLinecap="square" />
+              <circle cx="89" cy="40" r="25" stroke="var(--amber)" strokeWidth="11" />
+              <line x1="95" y1="50" x2="113" y2="71" stroke="var(--amber)"
+                    strokeWidth="11" strokeLinecap="square" />
+            </svg>
+            <p className="cin-logo-wordmark">VULCAN QUANTA</p>
             <p className="cin-logo-tagline">AI-Powered Quantity Surveying</p>
           </div>
 
           {/* Scroll cue */}
-          <div className="cin-scroll-hint">
+          <div ref={scrollHintRef} className="cin-scroll-hint" aria-hidden="true">
             <div className="cin-scroll-line" />
             <span>Scroll</span>
           </div>
@@ -352,18 +402,26 @@ function LandingPage({ go, tweaks = {}, toast }) {
           <div className="acc-wrap">
             {faqs.map((item, i) => (
               <div key={i} className="acc-item">
-                <div className="acc-hd" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                <button
+                  type="button"
+                  className="acc-hd"
+                  style={{ width: '100%', textAlign: 'left' }}
+                  aria-expanded={openFaq === i}
+                  aria-controls={`faq-body-${i}`}
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
                   <span className="acc-q">{item.q}</span>
                   <svg
                     className={`acc-chevron ${openFaq === i ? 'open' : ''}`}
                     viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2"
                     strokeLinecap="round" strokeLinejoin="round"
+                    aria-hidden="true"
                   >
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
-                </div>
-                <div className={`acc-body ${openFaq === i ? 'open' : ''}`}>
+                </button>
+                <div id={`faq-body-${i}`} className={`acc-body ${openFaq === i ? 'open' : ''}`}>
                   <p>{item.a}</p>
                 </div>
               </div>
