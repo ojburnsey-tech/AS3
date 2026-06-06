@@ -903,6 +903,7 @@ function App() {
   const [user, setUser]               = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [boqData, setBoqData]         = useState(null);   // holds JSON returned by /process; passed down to ResultsPage
   const [t, setTweak]                 = useTweaks(TWEAK_DEFAULTS);
 
   // ── Accent CSS token sync ───────────────────────────────────────────────────────
@@ -1020,9 +1021,9 @@ function App() {
 
   const pages = {
     landing:        <LandingPage        go={go} tweaks={t} toast={toast} />,
-    results:        <ResultsPage        go={go} toast={toast} />,
+    results:        <ResultsPage        go={go} toast={toast} boqData={boqData} />,
     dashboard:      <DashboardPage      go={go} toast={toast} />,
-    upload:         <UploadPage         go={go} toast={toast} />,
+    upload:         <UploadPage         go={go} toast={toast} onBoqReady={setBoqData} />,
     settings:       <SettingsPage       go={go} toast={toast} />,
     signin:         <SignInPage         go={go} toast={toast} />,
     signup:         <SignUpPage         go={go} toast={toast} />,

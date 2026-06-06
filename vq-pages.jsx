@@ -420,12 +420,44 @@ function LandingPage({ go, tweaks = {}, toast }) {
   );
 }
 
+// ─── BOQ NORMALISER ─────────────────────────────────────────────────────────────────
+// Claude may return several JSON shapes. This converts all of them to a flat array of
+// items with the same fields used by ResultsPage, regardless of what Claude produced.
+function normaliseBoq(raw) {
+  // Determine where the array of trade groups lives in the response.
+  // Common shapes: [{trade, items}], {groundworks:[...], brickwork:[...]},
+  // {bill_of_quantities:[...]}, {trades:[...]}
+  let groups;
+  if (Array.isArray(raw))           groups = raw;
+  else if (raw.bill_of_quantities)  groups = raw.bill_of_quantities;
+  else if (raw.trades)              groups = raw.trades;
+  else                              groups = Object.entries(raw).map(([trade, items]) => ({ trade, items }));
+
+  let id = 0;
+  // flatMap is like SelectMany in C# LINQ — it flattens one level of nesting
+  return groups.flatMap(g => {
+    const trade = g.trade || g.name || 'General';
+    const items = g.items || g.line_items || [];
+    return items.map(it => ({
+      id:   ++id,
+      trade,
+      desc: it.description || it.desc || '',
+      qty:  parseFloat(it.quantity ?? it.qty ?? 0),
+      unit: it.unit || '',
+      rate: parseFloat(it.rate ?? 0),
+      flag: false,
+    }));
+  });
+}
+
 // ─── RESULTS ───────────────────────────────────────────────────────────────────────
-function ResultsPage({ go, toast }) {
+// boqData is the raw JSON object returned by POST /process (null when demo mode)
+function ResultsPage({ go, toast, boqData }) {
   const [pdfState, setPdfState] = useState('idle');
   const [contingency, setContingency] = useState(10);
 
-  const baseItems = [
+  // Demo items shown when no real upload has been processed yet
+  const mockItems = [
     { id: 1, trade: 'Groundworks', desc: 'Excavation to reduced level', qty: 250, unit: 'm²', rate: 8.50, flag: false },
     { id: 2, trade: 'Groundworks', desc: 'Concrete strip foundations', qty: 85, unit: 'm³', rate: 95.00, flag: false },
     { id: 3, trade: 'Brickwork', desc: 'Common brickwork, stretcher bond', qty: 2400, unit: 'No', rate: 0.65, flag: true },
@@ -437,13 +469,21 @@ function ResultsPage({ go, toast }) {
     { id: 9, trade: 'Plumbing', desc: 'Water pipes (15mm copper)', qty: 450, unit: 'lm', rate: 5.50, flag: false },
     { id: 10, trade: 'Finishes', desc: 'Emulsion paint (2 coats)', qty: 1420, unit: 'm²', rate: 2.10, flag: false },
   ];
+  // If the API returned data normalise it; otherwise fall back to demo items
+  const baseItems = boqData ? normaliseBoq(boqData) : mockItems;
+
+  // qtys holds the editable quantity for each line, keyed by item id
+  // useState lazy initialiser (the arrow function) only runs once on mount,
+  // at which point boqData is already resolved — equivalent to a C# field initialiser
   const [qtys, setQtys] = useState(() => Object.fromEntries(baseItems.map(i => [i.id, i.qty])));
   const fmt = n => `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const calc = (id, rate) => (qtys[id] || 0) * rate;
-  const trades = ['Groundworks','Brickwork','Carpentry','Roofing','Plastering','Electrical','Plumbing','Finishes'];
+  // Derive trade list from the actual items in order of first appearance, deduped with Set
+  const trades = [...new Set(baseItems.map(i => i.trade))];
   const subtotal = baseItems.reduce((s, i) => s + calc(i.id, i.rate), 0);
   const contAmt = subtotal * (contingency / 100);
   const grandTotal = subtotal + contAmt;
+  const flagCount = baseItems.filter(i => i.flag).length;
   let rowIdx = 0;
 
   const handlePDF = () => {
@@ -471,7 +511,7 @@ function ResultsPage({ go, toast }) {
           <span className="conf-lbl">Confidence:</span>
           <div className="conf-track"><div className="conf-fill" style={{ width: '92%' }} /></div>
           <span className="conf-pct">92%</span>
-          <span className="conf-note">— 2 items flagged for review</span>
+          {flagCount > 0 && <span className="conf-note">— {flagCount} item{flagCount !== 1 ? 's' : ''} flagged for review</span>}
         </div>
         <p className="res-disclaimer">AI-generated draft — professional review required before issue to client. Edit inline, then export.</p>
         <div className="res-controls">
@@ -598,28 +638,70 @@ function DashboardPage({ go, toast }) {
 }
 
 // ─── UPLOAD ─────────────────────────────────────────────────────────────────────────
-function UploadPage({ go, toast }) {
+// onBoqReady is a callback that stores the Claude JSON in App-level state so
+// ResultsPage can read it — equivalent to raising a C# event to a parent component
+function UploadPage({ go, toast, onBoqReady }) {
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState(null);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('idle');
 
-  const processFile = name => {
-    setFileName(name);
-    setStatus('uploading');
-    setProgress(0);
+  // processFile accepts the real File object (not just its name)
+  // It is declared async so we can use await inside — like an async Task method in C#
+  const processFile = async file => {
+    setFileName(file.name);         // display the filename immediately in the UI
+    setStatus('uploading');         // switch the progress bar to the uploading state
+    setProgress(0);                 // reset progress to 0
+
+    // Animate the bar to ~90% while the fetch is in flight so the user sees activity.
+    // We cap at 90 so there is always a visible jump to 100 when the response arrives.
     let p = 0;
     const iv = setInterval(() => {
-      p += Math.random() * 15 + 8;
-      if (p >= 100) {
-        clearInterval(iv);
-        setProgress(100);
-        setStatus('processing');
-        setTimeout(() => { setStatus('done'); setTimeout(() => go('results'), 700); }, 1200);
-      } else {
-        setProgress(p);
+      p = Math.min(p + Math.random() * 8 + 4, 90);   // increment randomly, never exceed 90
+      setProgress(p);
+    }, 300);
+
+    try {
+      // FormData is the browser's equivalent of a multipart/form-data body — like
+      // MultipartFormDataContent in C# HttpClient
+      const formData = new FormData();
+      formData.append('file', file);   // 'file' must match the field name in Flask's request.files["file"]
+
+      // fetch() sends the HTTP request and returns a Promise — like HttpClient.PostAsync in C#.
+      // No Content-Type header is set manually; the browser sets multipart/form-data + boundary automatically.
+      const res = await fetch('/process', { method: 'POST', body: formData });
+
+      clearInterval(iv);   // stop the fake progress animation now that the server has responded
+
+      if (!res.ok) {
+        // Try to read a JSON error body from Flask, fall back to the HTTP status text
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        toast(err.error || 'Upload failed. Please try again.', 'error');
+        setStatus('idle');     // reset the UI so the user can try again
+        setFileName(null);
+        setProgress(0);
+        return;   // early return — like 'return' after a guard clause in C#
       }
-    }, 200);
+
+      // res.json() parses the JSON response body — like JsonSerializer.Deserialize in C#
+      const data = await res.json();
+
+      setProgress(100);           // snap the bar to 100% to signal completion
+      setStatus('processing');    // show the "AI reading" message briefly
+      onBoqReady(data);           // store the BoQ JSON in App-level state for ResultsPage
+
+      // Brief pause for visual satisfaction, then navigate to the results page
+      setTimeout(() => { setStatus('done'); setTimeout(() => go('results'), 700); }, 1200);
+
+    } catch (err) {
+      // fetch() itself throws only on network-level failures (no connection, DNS error, etc.)
+      // HTTP error statuses (4xx, 5xx) do NOT throw — they are handled by the !res.ok check above
+      clearInterval(iv);
+      toast('Network error — could not reach the server.', 'error');
+      setStatus('idle');
+      setFileName(null);
+      setProgress(0);
+    }
   };
 
   const statusMsg = { uploading: 'Uploading drawing…', processing: 'AI reading your drawing…', done: '✓ Ready! Opening your BoQ…' };
@@ -634,7 +716,7 @@ function UploadPage({ go, toast }) {
         </div>
         <div
           className={`upload-zone${dragOver ? ' drag' : ''}`}
-          onDrop={e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0].name); }}
+          onDrop={e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }}
           onDragOver={e => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onClick={() => document.getElementById('vq-file-input').click()}
@@ -648,7 +730,7 @@ function UploadPage({ go, toast }) {
             </button>
           )}
           <input id="vq-file-input" type="file" accept=".pdf" style={{ display: 'none' }}
-            onChange={e => { if (e.target.files[0]) processFile(e.target.files[0].name); }} />
+            onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); }} />
         </div>
         {fileName && (
           <div className="upload-status">
