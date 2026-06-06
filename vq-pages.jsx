@@ -486,15 +486,74 @@ function ResultsPage({ go, toast, boqData }) {
   const flagCount = baseItems.filter(i => i.flag).length;
   let rowIdx = 0;
 
-  const handlePDF = () => {
+  // Build the JSON payload for POST /download.
+  // Real mode: boqData is the enriched JSON from /process — send it as-is.
+  // Demo mode: boqData is null, so we convert the current baseItems (with editable qtys).
+  const buildPayload = () => {
+    if (boqData) return boqData;                   // real upload — all fields already present
+    const byTrade = {};                            // group mock items by trade name
+    baseItems.forEach(item => {
+      if (!byTrade[item.trade]) byTrade[item.trade] = [];
+      byTrade[item.trade].push({
+        description:   item.desc,
+        quantity:      qtys[item.id] ?? item.qty,  // use editable qty if available
+        unit:          item.unit,
+        material_rate: +(item.rate * 0.40).toFixed(2),   // split combined rate ~40/60 mat/lab
+        labour_rate:   +(item.rate * 0.60).toFixed(2),
+        line_total:    +((qtys[item.id] ?? item.qty) * item.rate).toFixed(2),
+      });
+    });
+    // Convert to [{trade, items}] — the shape _normalise_boq in export_pdf.py expects
+    return Object.entries(byTrade).map(([trade, items]) => ({ trade, items }));
+  };
+
+  const handleDownload = async () => {
     if (pdfState !== 'idle') return;
     setPdfState('generating');
-    toast('Generating your PDF…', 'info');
-    setTimeout(() => {
+    toast('Generating PDF…', 'info');
+
+    try {
+      // POST the BoQ JSON to the server; Flask calls generate_boq_pdf() and streams the result back.
+      const res = await fetch('/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      });
+
+      if (!res.ok) {
+        // Try to read a JSON error body from Flask; fall back to the HTTP status text
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        toast(err.error || 'PDF generation failed — please try again.', 'error');
+        setPdfState('idle');
+        return;
+      }
+
+      // Convert the HTTP response body to a Blob (binary large object).
+      // There is no direct filesystem API in the browser, so we:
+      //   1. Create a temporary object URL pointing to the Blob in memory
+      //   2. Programmatically click a hidden <a> element with that URL as href
+      //   3. Revoke the URL immediately after to free memory
+      // This is the standard cross-browser pattern for downloading fetch() responses as files.
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);    // like a temporary in-memory file path
+      const a    = document.createElement('a');  // create an invisible anchor element
+      a.href     = url;
+      a.download = 'bill-of-quantities.pdf';     // suggested filename shown in the Save dialog
+      document.body.appendChild(a);             // must be in the DOM for Firefox to trigger the download
+      a.click();                                 // fires the download
+      document.body.removeChild(a);             // clean up immediately
+      URL.revokeObjectURL(url);                  // release the Blob from memory
+
       setPdfState('done');
-      toast('PDF export coming soon — your BoQ has been saved to your account.', 'success');
-      setTimeout(() => setPdfState('idle'), 5000);
-    }, 1500);
+      toast('PDF downloaded.', 'success');
+      setTimeout(() => setPdfState('idle'), 3000);
+
+    } catch (err) {
+      // fetch() only throws on network failure (DNS error, no connection, etc.)
+      // HTTP 4xx/5xx responses do NOT throw — they are handled by the !res.ok branch above
+      toast('Network error — could not reach the server.', 'error');
+      setPdfState('idle');
+    }
   };
 
   return (
@@ -515,10 +574,10 @@ function ResultsPage({ go, toast, boqData }) {
         </div>
         <p className="res-disclaimer">AI-generated draft — professional review required before issue to client. Edit inline, then export.</p>
         <div className="res-controls">
-          <button className="btn btn-amber btn-pill" onClick={handlePDF} disabled={pdfState === 'generating'}>
-            {pdfState === 'idle' && '↓ Download PDF'}
-            {pdfState === 'generating' && '⏳ Generating…'}
-            {pdfState === 'done' && '✓ Saved to account'}
+          <button className="btn btn-amber btn-pill" onClick={handleDownload} disabled={pdfState !== 'idle'}>
+            {pdfState === 'idle'       && '↓ Download PDF'}
+            {pdfState === 'generating' && '⏳ Generating PDF…'}
+            {pdfState === 'done'       && '✓ Downloaded'}
           </button>
           <button className="btn btn-outline btn-pill" onClick={() => toast('Excel export coming soon — your BoQ data is ready.', 'info')}>📊 Excel</button>
           <button className="btn btn-outline btn-pill" onClick={() => { navigator.clipboard?.writeText?.(window.location.href); toast('Share link copied to clipboard!', 'success'); }}>🔗 Share</button>
