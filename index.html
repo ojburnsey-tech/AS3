@@ -416,7 +416,7 @@
     }
 
     /* ─────────────────────────────────────────────────────────────────────────────
-       CINEMATIC LANDING — transparent header + full-bleed video hero
+       CINEMATIC LANDING — fixed video background + glassmorphic content
     ───────────────────────────────────────────────────────────────────────────── */
 
     /* Header overrides when on landing page */
@@ -434,63 +434,55 @@
       border-bottom-color: rgba(255,255,255,0.06);
     }
 
-    /* ── VIDEO PIN WRAP ─────────────────────────────────────────────────────── */
-    .cin-pin-wrap { position: relative; height: 600vh; }
+    /* ── FIXED VIDEO BACKGROUND ──────────────────────────────────────────────── */
+    body.is-landing { background: #080706; }
 
-    .cin-sticky {
-      position: sticky;
-      top: 0;
-      height: 100vh;
+    .cin-video-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
       overflow: hidden;
       background: #080706;
     }
-
     .cin-video {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
+      transform: translateZ(0);
+      will-change: transform;
     }
-
     .cin-overlay {
       position: absolute;
       inset: 0;
       pointer-events: none;
       background: linear-gradient(
         to bottom,
-        rgba(0,0,0,0.5) 0%,
-        rgba(0,0,0,0.08) 28%,
-        rgba(0,0,0,0.12) 56%,
-        rgba(0,0,0,0.72) 100%
+        rgba(0,0,0,0.38) 0%,
+        rgba(0,0,0,0.06) 32%,
+        rgba(0,0,0,0.06) 60%,
+        rgba(0,0,0,0.60) 100%
       );
     }
 
-    /* Content layers — all stacked absolutely, each phase controls opacity */
-    .cin-content {
-      position: absolute;
+    /* ── FIXED TAGLINE OVERLAY ───────────────────────────────────────────────── */
+    .cin-phase-wrap {
+      position: fixed;
       inset: 0;
+      z-index: 5;
+      pointer-events: none;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      padding: 0 var(--px) 8vh;
-      pointer-events: none;
+      padding: 0 var(--px) 10vh;
     }
-    .cin-content .btn { pointer-events: auto; }
+    .cin-phase-wrap .btn { pointer-events: auto; }
 
-    .cin-phase2 { opacity: 0; }
-    .cin-logo-reveal {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-    }
+    /* ── HERO SPACER — creates scroll room for the cinematic sequence ────────── */
+    .cin-hero-spacer { height: 100vh; min-height: 560px; }
 
-    /* ── VIDEO TEXT TYPOGRAPHY ─────────────────────────────────────────────── */
+    /* ── VIDEO TEXT TYPOGRAPHY ───────────────────────────────────────────────── */
     .cin-eyebrow {
       font-size: 11px;
       font-weight: 700;
@@ -515,46 +507,8 @@
       color: rgba(255,255,255,0.28);
       letter-spacing: 0.04em;
     }
-    .cin-h2 {
-      font-family: var(--font-d);
-      font-size: clamp(30px, 4.5vw, 66px);
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.03em;
-      line-height: 1.08;
-      margin-bottom: 18px;
-    }
-    .cin-phase2-sub {
-      font-size: 18px;
-      color: rgba(255,255,255,0.5);
-      line-height: 1.65;
-      max-width: 460px;
-    }
 
-    /* Logo reveal */
-    .cin-logo-img {
-      height: 110px;
-      width: auto;
-      filter: drop-shadow(0 0 48px rgba(249,115,22,0.25));
-    }
-    .cin-logo-wordmark {
-      margin-top: 28px;
-      font-family: var(--font-d);
-      font-size: clamp(22px, 3vw, 34px);
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      color: #fff;
-    }
-    .cin-logo-tagline {
-      margin-top: 22px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.4);
-    }
-
-    /* Scroll hint */
+    /* Scroll hint — absolutely positioned inside fixed overlay */
     .cin-scroll-hint {
       position: absolute;
       bottom: 38px;
@@ -581,7 +535,7 @@
       50% { opacity: 0.9; transform: scaleY(1.08); }
     }
 
-    /* ── SHARED CINEMATIC SECTION PRIMITIVES ────────────────────────────────── */
+    /* ── SHARED CINEMATIC SECTION PRIMITIVES ─────────────────────────────────── */
     .cin-section-label {
       font-size: 11px;
       font-weight: 700;
@@ -590,7 +544,7 @@
       color: var(--amber);
       margin-bottom: 20px;
     }
-    .cin-section-label-dk { /* same but used on light backgrounds */
+    .cin-section-label-dk {
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.18em;
@@ -610,13 +564,13 @@
       font-family: var(--font-d);
       font-size: clamp(28px, 3.5vw, 52px);
       font-weight: 700;
-      color: var(--c-950);
+      color: #fff;
       letter-spacing: -0.03em;
       line-height: 1.15;
     }
 
-    /* ── 2. EDITORIAL STATEMENT ────────────────────────────────────────────── */
-    .cin-statement { background: #0B0B0B; padding: 128px 0; }
+    /* ── 2. EDITORIAL STATEMENT ──────────────────────────────────────────────── */
+    .cin-statement { background: rgba(8,7,6,0.88); padding: 128px 0; }
     .cin-statement-text {
       font-family: var(--font-d);
       font-size: clamp(26px, 3.2vw, 50px);
@@ -628,8 +582,8 @@
       margin-top: 20px;
     }
 
-    /* ── 3. PROCESS ─────────────────────────────────────────────────────────── */
-    .cin-process { background: #111213; padding: 128px 0; }
+    /* ── 3. PROCESS ──────────────────────────────────────────────────────────── */
+    .cin-process { background: rgba(10,10,12,0.90); padding: 128px 0; }
     .cin-process-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -641,6 +595,9 @@
     .cin-process-item {
       padding: 52px 44px;
       border-right: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px) saturate(1.2);
+      -webkit-backdrop-filter: blur(12px) saturate(1.2);
     }
     .cin-process-item:last-child { border-right: none; }
     .cin-process-num {
@@ -664,8 +621,8 @@
       line-height: 1.78;
     }
 
-    /* ── 4. PRODUCT SPLIT ───────────────────────────────────────────────────── */
-    .cin-split { padding: 128px 0; background: #F9F9F9; }
+    /* ── 4. PRODUCT SPLIT ────────────────────────────────────────────────────── */
+    .cin-split { padding: 128px 0; background: rgba(6,6,10,0.88); }
     .cin-split-inner {
       max-width: var(--max-w);
       margin: 0 auto;
@@ -677,43 +634,63 @@
     }
     .cin-split-sub {
       font-size: 16px;
-      color: var(--c-500);
+      color: rgba(255,255,255,0.42);
       line-height: 1.78;
       margin-top: 16px;
       max-width: 380px;
     }
+    /* BoQ mockup — dark glass treatment */
+    .cin-split .boq-mockup {
+      background: rgba(15,23,42,0.72);
+      backdrop-filter: blur(20px) saturate(1.3);
+      -webkit-backdrop-filter: blur(20px) saturate(1.3);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    .cin-split .boq-mock-hdr { background: rgba(10,16,28,0.85); }
+    .cin-split .boq-mini th { background: rgba(10,16,28,0.7); color: rgba(255,255,255,0.45); border-color: rgba(255,255,255,0.07); }
+    .cin-split .boq-row td { color: rgba(255,255,255,0.55); border-color: rgba(255,255,255,0.06); }
+    .cin-split .boq-row.alt { background: rgba(255,255,255,0.03); }
+    .cin-split .boq-sub { background: rgba(255,255,255,0.06); }
+    .cin-split .boq-sub td { color: rgba(255,255,255,0.75); border-color: rgba(255,255,255,0.10); }
+    .cin-split .boq-mock-ftr { background: rgba(10,16,28,0.6); border-color: rgba(255,255,255,0.07); }
+    .cin-split .boq-mock-ftr p { color: rgba(255,255,255,0.28); }
 
-    /* ── 5. FEATURES ────────────────────────────────────────────────────────── */
-    .cin-features { padding: 128px 0; background: #fff; }
+    /* ── 5. FEATURES ─────────────────────────────────────────────────────────── */
+    .cin-features { padding: 128px 0; background: rgba(8,8,14,0.90); }
     .cin-feat-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      border: 1px solid var(--c-200);
+      border: 1px solid rgba(255,255,255,0.07);
       border-radius: 3px;
       overflow: hidden;
       margin-top: 64px;
     }
     .cin-feat-item {
       padding: 44px 40px;
-      border-right: 1px solid var(--c-200);
-      border-bottom: 1px solid var(--c-200);
+      border-right: 1px solid rgba(255,255,255,0.07);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       transition: background 0.2s ease;
     }
     .cin-feat-item:nth-child(3n) { border-right: none; }
     .cin-feat-item:nth-child(n+4) { border-bottom: none; }
-    .cin-feat-item:hover { background: var(--c-50); }
+    .cin-feat-item:hover { background: rgba(255,255,255,0.07); }
     .cin-feat-name {
       font-family: var(--font-d);
       font-size: 16px;
       font-weight: 700;
-      color: var(--c-950);
+      color: #fff;
       margin-bottom: 10px;
       letter-spacing: -0.01em;
     }
-    .cin-feat-desc { font-size: 14px; color: var(--c-500); line-height: 1.72; }
+    .cin-feat-desc { font-size: 14px; color: rgba(255,255,255,0.36); line-height: 1.72; }
 
-    /* ── 6. PROOF / TRUST ───────────────────────────────────────────────────── */
-    .cin-proof { padding: 128px 0; background: #0B0B0B; }
+    /* ── 6. PROOF / TRUST ────────────────────────────────────────────────────── */
+    .cin-proof { padding: 128px 0; background: rgba(5,5,8,0.92); }
     .cin-proof-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -726,6 +703,9 @@
       padding: 44px 40px;
       border-right: 1px solid rgba(255,255,255,0.06);
       border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .cin-proof-item:nth-child(3n) { border-right: none; }
     .cin-proof-item:nth-child(n+4) { border-bottom: none; }
@@ -747,16 +727,53 @@
     }
     .cin-proof-note { font-size: 13px; color: rgba(255,255,255,0.33); line-height: 1.72; }
 
-    /* ── 7. PRICING ─────────────────────────────────────────────────────────── */
-    .cin-pricing { padding: 128px 0; background: var(--c-50); }
-    .cin-pricing-sub { font-size: 17px; color: var(--c-500); margin-top: 14px; }
+    /* ── 7. PRICING ──────────────────────────────────────────────────────────── */
+    .cin-pricing { padding: 128px 0; background: rgba(8,8,12,0.92); }
+    .cin-pricing-sub { font-size: 17px; color: rgba(255,255,255,0.36); margin-top: 14px; }
+    .cin-pricing .pricing-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(16px) saturate(1.3);
+      -webkit-backdrop-filter: blur(16px) saturate(1.3);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .cin-pricing .pricing-card:hover {
+      background: rgba(255,255,255,0.08);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+    }
+    .cin-pricing .pricing-card.rec {
+      border: 1px solid rgba(249,115,22,0.30);
+      border-top: 3px solid var(--amber);
+      background: rgba(249,115,22,0.07);
+      box-shadow: 0 8px 40px rgba(249,115,22,0.15);
+    }
+    .cin-pricing .pricing-name { color: #fff; }
+    .cin-pricing .pricing-price { color: #fff; }
+    .cin-pricing .pricing-period { color: rgba(255,255,255,0.32); }
+    .cin-pricing .pricing-feats li { color: rgba(255,255,255,0.52); }
+    .cin-pricing .btn-outline {
+      background: transparent;
+      border-color: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.62);
+    }
+    .cin-pricing .btn-outline:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.38);
+      color: #fff;
+    }
 
-    /* ── 8. FAQ ─────────────────────────────────────────────────────────────── */
-    .cin-faq { padding: 128px 0; background: #fff; }
+    /* ── 8. FAQ ──────────────────────────────────────────────────────────────── */
+    .cin-faq { padding: 128px 0; background: rgba(5,5,10,0.92); }
+    .cin-faq .acc-item { border-color: rgba(255,255,255,0.07); }
+    .cin-faq .acc-q { color: #fff; }
+    .cin-faq .acc-hd:hover .acc-q { color: var(--amber); }
+    .cin-faq .acc-body p { color: rgba(255,255,255,0.48); }
+    .cin-faq .acc-chevron { color: rgba(255,255,255,0.28); }
 
-    /* ── 9. FINAL CTA ───────────────────────────────────────────────────────── */
+    /* ── 9. FINAL CTA ────────────────────────────────────────────────────────── */
     .cin-cta {
-      background: #080706;
+      background: rgba(8,7,6,0.96);
       padding: 160px 0;
       border-top: 1px solid rgba(255,255,255,0.04);
     }
@@ -796,9 +813,14 @@
     }
     .btn-ghost-lt:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.85); }
 
-    /* ── CINEMATIC MOBILE ───────────────────────────────────────────────────── */
+    /* Security strip floats above fixed video */
+    .sec-strip {
+      background: rgba(5,5,10,0.97) !important;
+      border-top: 1px solid rgba(255,255,255,0.05) !important;
+    }
+
+    /* ── CINEMATIC MOBILE ────────────────────────────────────────────────────── */
     @media (max-width: 1024px) {
-      .cin-pin-wrap { height: 500vh; }
       .cin-split-inner { grid-template-columns: 1fr; gap: 56px; }
       .cin-process-grid { grid-template-columns: 1fr; }
       .cin-process-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
@@ -807,17 +829,26 @@
       .cin-proof-item:nth-child(3n) { border-right: 1px solid rgba(255,255,255,0.06); }
       .cin-proof-item:nth-child(2n) { border-right: none; }
       .cin-feat-grid { grid-template-columns: repeat(2, 1fr); }
-      .cin-feat-item:nth-child(3n) { border-right: 1px solid var(--c-200); }
+      .cin-feat-item:nth-child(3n) { border-right: 1px solid rgba(255,255,255,0.07); }
       .cin-feat-item:nth-child(2n) { border-right: none; }
       .cin-feat-item:nth-child(n+5) { border-bottom: none; }
-      .cin-feat-item:nth-child(n+4) { border-bottom: 1px solid var(--c-200); }
+      .cin-feat-item:nth-child(n+4) { border-bottom: 1px solid rgba(255,255,255,0.07); }
     }
     @media (max-width: 768px) {
-      .cin-pin-wrap { height: 450vh; }
+      /* On mobile: hide fixed video, convert fixed overlay to in-flow hero */
+      .cin-video-bg { display: none; }
+      .cin-hero-spacer { display: none; }
+      .cin-scroll-hint { display: none; }
+      .cin-phase-wrap {
+        position: relative;
+        height: 72vh;
+        min-height: 460px;
+        padding: 0 var(--px) 10vh;
+        background: #080706;
+        pointer-events: auto;
+      }
+      .cin-phase-wrap .btn { pointer-events: auto; }
       .cin-h1 { font-size: 34px; }
-      .cin-h2 { font-size: 28px; }
-      .cin-logo-img { height: 80px; }
-      .cin-content { padding: 0 var(--px) 12vh; }
       .cin-proof-grid { grid-template-columns: 1fr; }
       .cin-proof-item { border-right: none !important; }
       .cin-feat-grid { grid-template-columns: 1fr; }
@@ -826,14 +857,19 @@
       .cin-proof, .cin-pricing, .cin-faq, .cin-cta { padding: 80px 0; }
     }
 
-    /* ── REDUCED MOTION — collapse the scroll-scrub into a static hero ───────── */
+    /* ── REDUCED MOTION — hide video, static dark page ───────────────────────── */
     @media (prefers-reduced-motion: reduce) {
-      .cin-pin-wrap { height: auto !important; }
-      .cin-sticky   { position: relative; height: 100vh; min-height: 560px; }
-      .cin-scroll-line { animation: none; }
-      /* Phase 1 stays visible; later phases never animate in */
-      .cin-content:not(.cin-phase2) { opacity: 1 !important; }
-      .cin-phase2, .cin-logo-reveal { display: none !important; }
+      .cin-video-bg { display: none; }
+      .cin-hero-spacer { display: none; }
+      .cin-scroll-hint { display: none; }
+      .cin-phase-wrap {
+        position: relative;
+        height: 72vh;
+        min-height: 460px;
+        padding: 0 var(--px) 10vh;
+        background: #080706;
+        pointer-events: auto;
+      }
     }
   </style>
 </head>
