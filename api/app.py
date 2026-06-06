@@ -2,11 +2,14 @@
 
 import os                          # os gives access to environment variables (like Environment.GetEnvironmentVariable in C#)
 import io                          # io.BytesIO is an in-memory byte buffer — like MemoryStream in C#
+import re                          # re is Python's regex module — like System.Text.RegularExpressions in C#
 import json                        # json parses/serialises JSON — like System.Text.Json in C#
+import difflib                     # difflib is a stdlib module for comparing sequences; used for fuzzy string matching
 import pdfplumber                  # third-party library that opens PDFs and extracts text page by page
 import anthropic                   # official Anthropic Python SDK — wraps the Claude REST API
 from flask import Flask, request, jsonify  # Flask = web framework; request = current HTTP request; jsonify = creates a JSON Response
 from flask_cors import CORS        # CORS middleware so the React SPA (different port in dev) can call this API
+from rates import RATES_DB         # our local dict of 2025-2026 UK construction rates (material + labour per unit)
 
 app = Flask(__name__)              # create the Flask app instance; __name__ tells Flask the root path (like WebApplication.CreateBuilder in C#)
 CORS(app)                          # allow all origins on every route — equivalent to app.UseCors() in ASP.NET Core
@@ -20,6 +23,110 @@ SYSTEM_PROMPT = (                  # module-level constant so the prompt is defi
     "(m, m², m³, nr, item), and leave rate as 0.00 for now. "
     "Return valid JSON only, no preamble or markdown."
 )                                  # Python allows implicit string concatenation inside parentheses — no + operator needed
+
+# ── Rate-matching helpers ─────────────────────────────────────────────────────────────
+# These run once at module load time — like a static constructor in C#.
+# We pre-compute token sets for every RATES_DB key so we don't repeat the work
+# on every incoming request.
+
+_STOP = frozenset([                # words too common to be useful for matching
+    'to', 'in', 'of', 'the', 'a', 'and', 'for', 'with', 'at', 'on', 'per', 'by', 'or',
+])
+
+def _tokenise(text):
+    """Lower-case, strip punctuation, remove stop words → frozenset of tokens."""
+    clean = re.sub(r'[^a-z0-9\s]', ' ', text.lower())   # keep only alphanumeric + spaces
+    return frozenset(w for w in clean.split() if w not in _STOP and len(w) > 1)
+
+# Dict[key → frozenset of tokens] — computed once, reused on every request
+_RATES_TOKENS = {key: _tokenise(key.replace('_', ' ')) for key in RATES_DB}
+
+
+def _match_rate(description):
+    """
+    Find the closest RATES_DB entry for a free-text description.
+    Uses Jaccard similarity on normalised token sets — no extra dependencies.
+    Returns (matched_key, rate_dict) or (None, None) if no confident match found.
+
+    Jaccard similarity = |intersection| / |union|  — ranges 0.0 (no overlap) to 1.0 (identical).
+    C# equivalent: intersect.Count() / (double)union.Count()
+    """
+    desc_toks = _tokenise(description)
+    if not desc_toks:                    # guard: empty description after normalisation
+        return None, None
+
+    best_key   = None
+    best_score = 0.0
+
+    for key, key_toks in _RATES_TOKENS.items():
+        if not key_toks:
+            continue
+        intersection = len(desc_toks & key_toks)   # & on frozensets = set intersection
+        if intersection == 0:
+            continue                                # skip if no common tokens at all
+        union = len(desc_toks | key_toks)          # | on frozensets = set union
+        score = intersection / union               # Jaccard coefficient
+        if score > best_score:
+            best_score = score
+            best_key   = key
+
+    # Require Jaccard ≥ 0.10 — at least ~1-in-9 tokens must overlap.
+    # Lower than 0.15 to handle verbose descriptions like "common brickwork in stretcher bond"
+    # whose extra tokens (stretcher, bond) dilute the score against the shorter RATES_DB key.
+    if best_score >= 0.10 and best_key:
+        return best_key, RATES_DB[best_key]
+    return None, None
+
+
+def _enrich_boq(boq_data):
+    """
+    Walk the Claude JSON (regardless of its outer shape) and apply RATES_DB rates to
+    every line item in place.  Adds material_rate, labour_rate, rate, line_total,
+    and rate_source to each item dict.  Returns the same object (mutated).
+    """
+    # Normalise the outer structure to a flat list of trade-group dicts.
+    # Claude may return [{trade, items}], {groundworks:[...]}, {bill_of_quantities:[...]}, etc.
+    # isinstance() checks the runtime type — like 'is' / 'as' in C#.
+    if isinstance(boq_data, list):
+        groups = boq_data                          # already [{trade, items}]
+    elif isinstance(boq_data, dict):
+        if 'bill_of_quantities' in boq_data:       # wrapper key used by some Claude outputs
+            groups = boq_data['bill_of_quantities']
+        elif 'trades' in boq_data:
+            groups = boq_data['trades']
+        else:
+            # Keys are trade names, values are item lists — convert to uniform list
+            groups = [{'trade': k, 'items': v}
+                      for k, v in boq_data.items() if isinstance(v, list)]
+    else:
+        return boq_data                            # unexpected shape — pass through untouched
+
+    for group in groups:                           # iterate each trade section
+        items = group.get('items') or group.get('line_items') or []
+        for item in items:                         # iterate each line item within the trade
+            desc = item.get('description') or item.get('desc') or ''
+            qty  = float(item.get('quantity') or item.get('qty') or 0)
+
+            matched_key, rate_entry = _match_rate(desc)
+
+            if rate_entry:
+                mat = rate_entry['material_rate']               # £ per unit, materials only
+                lab = rate_entry['labour_rate']                 # £ per unit, labour only
+                item['material_rate'] = mat
+                item['labour_rate']   = lab
+                item['rate']          = round(mat + lab, 2)    # all-in rate per unit
+                item['line_total']    = round((mat + lab) * qty, 2)  # rate × qty
+                item['rate_source']   = matched_key            # which RATES_DB key was matched
+            else:
+                # No match found — leave rates at zero so the QS can fill them in manually
+                item['material_rate'] = 0.00
+                item['labour_rate']   = 0.00
+                item['rate']          = 0.00
+                item['line_total']    = 0.00
+                item['rate_source']   = None                   # signals no automatic match
+
+    return boq_data   # return the same object so callers can chain: data = _enrich_boq(data)
+
 
 @app.route("/process", methods=["POST"])   # decorator registers this function as POST /process handler — like [HttpPost("process")] in C# Web API
 def process_pdf():                         # Flask calls this function when a matching request arrives
@@ -76,6 +183,8 @@ def process_pdf():                         # Flask calls this function when a ma
         boq_data = json.loads(raw_text)            # parse Claude's string output as JSON — like JsonSerializer.Deserialize<object>(rawText) in C#
     except json.JSONDecodeError as exc:            # handle the case where Claude ignored the instruction and added markdown fences or a preamble
         return jsonify({"error": f"Claude returned non-JSON output: {exc}", "raw": raw_text}), 502  # include raw output so the developer can debug
+
+    boq_data = _enrich_boq(boq_data)               # look up rates in RATES_DB and add material_rate, labour_rate, line_total to every item
 
     return jsonify(boq_data), 200                  # serialise the Python dict/list back to a JSON HTTP response — like return Ok(boqData) in C# Web API
 
