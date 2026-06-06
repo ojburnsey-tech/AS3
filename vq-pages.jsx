@@ -32,24 +32,40 @@ function LiveBoQ() {
   const [reduce] = useState(() =>
     typeof window !== 'undefined' &&
     window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const [stage, setStage] = useState('idle'); // idle → scan → price → done
+  const [stage, setStage] = useState('idle');
+  const timersRef = useRef([]);
+
+  const clearTimers = () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  };
+
+  const startAnim = () => {
+    if (reduce) { setStage('done'); return; }
+    clearTimers();
+    setStage('scan');
+    timersRef.current.push(setTimeout(() => setStage('price'), 1750));
+    timersRef.current.push(setTimeout(() => setStage('done'), 1750 + 6 * 110 + 700));
+  };
+
+  const handleReplay = () => {
+    clearTimers();
+    setStage('idle');
+    timersRef.current.push(setTimeout(startAnim, 80));
+  };
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    let timers = [];
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (!e.isIntersecting) return;
         io.unobserve(e.target);
-        if (reduce) { setStage('done'); return; }
-        setStage('scan');
-        timers.push(setTimeout(() => setStage('price'), 1750));
-        timers.push(setTimeout(() => setStage('done'), 1750 + 6 * 110 + 700));
+        startAnim();
       });
     }, { threshold: 0.35 });
     io.observe(el);
-    return () => { io.disconnect(); timers.forEach(clearTimeout); };
+    return () => { io.disconnect(); clearTimers(); };
   }, [reduce]);
 
   const counting = !reduce && (stage === 'price' || stage === 'done');
@@ -129,11 +145,115 @@ function LiveBoQ() {
           ))}
           <div className="lb-foot">
             <span className="lb-foot-lbl">Grand total · ex VAT</span>
-            <span className="lb-grand">{fmtGrand}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span className="lb-grand">{fmtGrand}</span>
+              {stage === 'done' && !reduce && (
+                <button className="lb-replay" onClick={handleReplay} type="button">↺ Replay</button>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── AUTH BLUEPRINT — architectural floor plan SVG for auth page left panel ─────────
+function AuthBlueprint() {
+  return (
+    <svg viewBox="0 0 480 660" fill="none" xmlns="http://www.w3.org/2000/svg"
+         style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+         aria-hidden="true">
+      <rect width="480" height="660" fill="#07080C" />
+      <defs>
+        <pattern id="abp-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="12" cy="12" r="0.8" fill="rgba(255,255,255,0.09)" />
+        </pattern>
+      </defs>
+      <rect width="480" height="660" fill="url(#abp-dots)" />
+      {/* Area fills */}
+      <rect x="64" y="160" width="192" height="180" fill="rgba(249,115,22,0.05)" />
+      <rect x="256" y="160" width="160" height="108" fill="rgba(249,115,22,0.04)" />
+      <rect x="256" y="268" width="160" height="72" fill="rgba(249,115,22,0.03)" />
+      {/* Outer walls */}
+      <rect x="60" y="155" width="360" height="190" stroke="rgba(255,255,255,0.62)" strokeWidth="8" fill="none" />
+      {/* Internal partitions */}
+      <line x1="252" y1="155" x2="252" y2="345" stroke="rgba(255,255,255,0.48)" strokeWidth="5" />
+      <line x1="252" y1="268" x2="420" y2="268" stroke="rgba(255,255,255,0.48)" strokeWidth="5" />
+      {/* Windows — north wall left */}
+      <line x1="84" y1="151" x2="172" y2="151" stroke="rgba(255,255,255,0.56)" strokeWidth="1.5" />
+      <line x1="84" y1="155" x2="84" y2="159" stroke="rgba(255,255,255,0.56)" strokeWidth="1.5" />
+      <line x1="172" y1="155" x2="172" y2="159" stroke="rgba(255,255,255,0.56)" strokeWidth="1.5" />
+      <line x1="128" y1="151" x2="128" y2="159" stroke="rgba(255,255,255,0.36)" strokeWidth="1" />
+      {/* Windows — north wall right */}
+      <line x1="274" y1="151" x2="400" y2="151" stroke="rgba(255,255,255,0.56)" strokeWidth="1.5" />
+      <line x1="274" y1="155" x2="274" y2="159" stroke="rgba(255,255,255,0.56)" strokeWidth="1.5" />
+      <line x1="400" y1="155" x2="400" y2="159" stroke="rgba(255,255,255,0.56)" strokeWidth="1.5" />
+      <line x1="337" y1="151" x2="337" y2="159" stroke="rgba(255,255,255,0.36)" strokeWidth="1" />
+      {/* Bifold doors — south wall (amber dashed) */}
+      <line x1="76" y1="345" x2="228" y2="345" stroke="rgba(249,115,22,0.62)" strokeWidth="2" strokeDasharray="8 4" />
+      <line x1="76" y1="340" x2="76" y2="350" stroke="rgba(249,115,22,0.62)" strokeWidth="1.5" />
+      <line x1="228" y1="340" x2="228" y2="350" stroke="rgba(249,115,22,0.62)" strokeWidth="1.5" />
+      {/* Door swing — kitchen/utility partition */}
+      <path d="M252 218 A26 26 0 0 1 278 244" stroke="rgba(255,255,255,0.30)" strokeWidth="1.2" strokeDasharray="4 3" fill="none" />
+      <line x1="252" y1="218" x2="252" y2="244" stroke="rgba(255,255,255,0.40)" strokeWidth="1.5" />
+      {/* Room labels */}
+      <text x="156" y="250" textAnchor="middle" fill="rgba(255,255,255,0.28)" fontFamily="monospace" fontSize="9.5" fontWeight="500" letterSpacing="0.11em">LIVING / DINING</text>
+      <text x="336" y="216" textAnchor="middle" fill="rgba(255,255,255,0.26)" fontFamily="monospace" fontSize="9" fontWeight="500" letterSpacing="0.09em">KITCHEN</text>
+      <text x="336" y="304" textAnchor="middle" fill="rgba(255,255,255,0.26)" fontFamily="monospace" fontSize="9" fontWeight="500" letterSpacing="0.09em">UTILITY / WC</text>
+      {/* Dimension — top (9,250mm) */}
+      <line x1="60" y1="128" x2="420" y2="128" stroke="rgba(249,115,22,0.50)" strokeWidth="1" />
+      <line x1="60" y1="122" x2="60" y2="134" stroke="rgba(249,115,22,0.50)" strokeWidth="1" />
+      <line x1="420" y1="122" x2="420" y2="134" stroke="rgba(249,115,22,0.50)" strokeWidth="1" />
+      <polygon points="64,128 73,124 73,132" fill="rgba(249,115,22,0.50)" />
+      <polygon points="416,128 407,124 407,132" fill="rgba(249,115,22,0.50)" />
+      <text x="240" y="121" textAnchor="middle" fill="rgba(249,115,22,0.72)" fontFamily="monospace" fontSize="9.5" fontWeight="600" letterSpacing="0.06em">9,250 mm</text>
+      {/* Dimension — right (6,600mm) */}
+      <line x1="446" y1="155" x2="446" y2="345" stroke="rgba(249,115,22,0.50)" strokeWidth="1" />
+      <line x1="440" y1="155" x2="452" y2="155" stroke="rgba(249,115,22,0.50)" strokeWidth="1" />
+      <line x1="440" y1="345" x2="452" y2="345" stroke="rgba(249,115,22,0.50)" strokeWidth="1" />
+      <polygon points="446,159 442,168 450,168" fill="rgba(249,115,22,0.50)" />
+      <polygon points="446,341 442,332 450,332" fill="rgba(249,115,22,0.50)" />
+      <text x="464" y="254" textAnchor="middle" fill="rgba(249,115,22,0.72)" fontFamily="monospace" fontSize="9.5" fontWeight="600" letterSpacing="0.06em" transform="rotate(90 464 254)">6,600 mm</text>
+      {/* GFA badge */}
+      <rect x="64" y="376" width="118" height="52" rx="5" fill="rgba(249,115,22,0.07)" stroke="rgba(249,115,22,0.26)" strokeWidth="1" />
+      <text x="123" y="395" textAnchor="middle" fill="rgba(249,115,22,0.46)" fontFamily="monospace" fontSize="8" fontWeight="500" letterSpacing="0.09em">GROSS FLOOR AREA</text>
+      <text x="123" y="417" textAnchor="middle" fill="rgba(249,115,22,0.86)" fontFamily="monospace" fontSize="17" fontWeight="700">60.9 m²</text>
+      {/* Confidence badge */}
+      <rect x="196" y="376" width="126" height="52" rx="5" fill="rgba(16,185,129,0.07)" stroke="rgba(16,185,129,0.24)" strokeWidth="1" />
+      <text x="259" y="395" textAnchor="middle" fill="rgba(16,185,129,0.50)" fontFamily="monospace" fontSize="8" fontWeight="500" letterSpacing="0.09em">AI CONFIDENCE</text>
+      <text x="259" y="417" textAnchor="middle" fill="rgba(16,185,129,0.86)" fontFamily="monospace" fontSize="17" fontWeight="700">94%</text>
+      {/* BCIS badge */}
+      <rect x="336" y="376" width="122" height="52" rx="5" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.09)" strokeWidth="1" />
+      <text x="397" y="394" textAnchor="middle" fill="rgba(255,255,255,0.28)" fontFamily="monospace" fontSize="7.5" fontWeight="500" letterSpacing="0.08em">BCIS Q2 2026</text>
+      <text x="397" y="408" textAnchor="middle" fill="rgba(255,255,255,0.20)" fontFamily="monospace" fontSize="7" letterSpacing="0.06em">NRM2 · SECTION 5F</text>
+      <text x="397" y="421" textAnchor="middle" fill="rgba(255,255,255,0.20)" fontFamily="monospace" fontSize="7" letterSpacing="0.06em">REF: OVR-2026-047</text>
+      {/* North arrow */}
+      <g transform="translate(36,454)">
+        <circle cx="0" cy="0" r="15" stroke="rgba(255,255,255,0.16)" strokeWidth="1" fill="none" />
+        <polygon points="0,-11 -4.5,3.5 0,0 4.5,3.5" fill="rgba(255,255,255,0.60)" />
+        <polygon points="0,11 -4.5,-3.5 0,0 4.5,-3.5" fill="rgba(255,255,255,0.16)" />
+        <text x="0" y="-17" textAnchor="middle" fill="rgba(255,255,255,0.44)" fontFamily="monospace" fontSize="8" fontWeight="700">N</text>
+      </g>
+      {/* Scale bar */}
+      <g transform="translate(68,458)">
+        <line x1="0" y1="0" x2="80" y2="0" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+        <line x1="0" y1="-4" x2="0" y2="4" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+        <line x1="40" y1="-3" x2="40" y2="3" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
+        <line x1="80" y1="-4" x2="80" y2="4" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+        <text x="0" y="13" textAnchor="middle" fill="rgba(255,255,255,0.26)" fontFamily="monospace" fontSize="7.5">0</text>
+        <text x="40" y="13" textAnchor="middle" fill="rgba(255,255,255,0.26)" fontFamily="monospace" fontSize="7.5">2.5m</text>
+        <text x="80" y="13" textAnchor="middle" fill="rgba(255,255,255,0.26)" fontFamily="monospace" fontSize="7.5">5m</text>
+        <text x="40" y="-9" textAnchor="middle" fill="rgba(255,255,255,0.20)" fontFamily="monospace" fontSize="7">1:100</text>
+      </g>
+      {/* Title block */}
+      <line x1="36" y1="496" x2="444" y2="496" stroke="rgba(255,255,255,0.09)" strokeWidth="0.75" />
+      <text x="36" y="514" fill="rgba(255,255,255,0.50)" fontFamily="monospace" fontSize="8.5" fontWeight="600" letterSpacing="0.07em">GROUND FLOOR PLAN — PROPOSED REAR EXTENSION</text>
+      <text x="36" y="528" fill="rgba(255,255,255,0.28)" fontFamily="monospace" fontSize="7.5" letterSpacing="0.05em">OAK VIEW, MANCHESTER, M14 5GH</text>
+      <line x1="36" y1="542" x2="444" y2="542" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+      <text x="36" y="558" fill="rgba(249,115,22,0.52)" fontFamily="monospace" fontSize="7.5" fontWeight="600" letterSpacing="0.11em">VULCAN QUANTA</text>
+      <text x="36" y="570" fill="rgba(255,255,255,0.16)" fontFamily="monospace" fontSize="7" letterSpacing="0.05em">AI QUANTITY SURVEYING · PRIVATE BETA</text>
+    </svg>
   );
 }
 
@@ -1001,61 +1121,68 @@ function SignUpPage({ go, toast, plan = 'pro' }) {
   };
 
   return (
-    <div className="signin-pg">
-      <div className="signin-card" style={{ maxWidth: '440px' }}>
-        <img src="logo-transparent.png" alt="Vulcan Quanta"
-          style={{ height: '48px', marginBottom: '32px', display: 'block', cursor: 'pointer' }}
-          onClick={() => go('landing')} />
-        <h1 className="signin-h">Create your account</h1>
-        <p className="signin-sub" style={{ marginBottom: '24px' }}>Get a priced BoQ in under 2 minutes.</p>
+    <div className="auth-pg">
+      <div className="auth-panel">
+        <AuthBlueprint />
+        <div className="auth-panel-scan" />
+        <div className="auth-panel-foot">
+          <p>From drawing to priced BoQ.<br /><strong>In under 2 minutes.</strong></p>
+        </div>
+      </div>
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <img src="logo-transparent.png" alt="Vulcan Quanta" className="auth-logo"
+               onClick={() => go('landing')} />
+          <h1 className="signin-h">Create your account</h1>
+          <p className="signin-sub" style={{ marginBottom: '24px' }}>Get a priced BoQ in under 2 minutes.</p>
 
-        {error && <div className="auth-err" role="alert">{error}</div>}
+          {error && <div className="auth-err" role="alert">{error}</div>}
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="fld" style={{ marginBottom: '16px' }}>
-            <label className="flbl" htmlFor="su-plan">Plan</label>
-            <select id="su-plan" className="finp" value={selectedPlan}
-              onChange={e => setSelectedPlan(e.target.value)}>
-              <option value="free">Free — £0/month</option>
-              <option value="pro">Pro — £39/month</option>
-              <option value="studio">Studio — £99/month</option>
-            </select>
-          </div>
-          <div className="fld" style={{ marginBottom: '16px' }}>
-            <label className="flbl" htmlFor="su-name">Full name</label>
-            <input id="su-name" className="finp" type="text" placeholder="James Henderson"
-              value={name} onChange={e => setName(e.target.value)}
-              autoComplete="name" required autoFocus />
-          </div>
-          <div className="fld" style={{ marginBottom: '16px' }}>
-            <label className="flbl" htmlFor="su-email">Work email</label>
-            <input id="su-email" className="finp" type="email" placeholder="you@example.com"
-              value={email} onChange={e => setEmail(e.target.value)}
-              autoComplete="email" required />
-          </div>
-          <div className="fld" style={{ marginBottom: '28px' }}>
-            <label className="flbl" htmlFor="su-pw">Password</label>
-            <input id="su-pw" className="finp" type="password" placeholder="8+ characters"
-              value={password} onChange={e => setPassword(e.target.value)}
-              autoComplete="new-password" required />
-          </div>
-          <button className="btn btn-amber btn-pill" style={{ width: '100%' }}
-            type="submit" disabled={loading}>
-            {loading ? 'Creating account…' : 'Create account'}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="fld" style={{ marginBottom: '16px' }}>
+              <label className="flbl" htmlFor="su-plan">Plan</label>
+              <select id="su-plan" className="finp" value={selectedPlan}
+                onChange={e => setSelectedPlan(e.target.value)}>
+                <option value="free">Free — £0/month</option>
+                <option value="pro">Pro — £39/month</option>
+                <option value="studio">Studio — £99/month</option>
+              </select>
+            </div>
+            <div className="fld" style={{ marginBottom: '16px' }}>
+              <label className="flbl" htmlFor="su-name">Full name</label>
+              <input id="su-name" className="finp" type="text" placeholder="James Henderson"
+                value={name} onChange={e => setName(e.target.value)}
+                autoComplete="name" required autoFocus />
+            </div>
+            <div className="fld" style={{ marginBottom: '16px' }}>
+              <label className="flbl" htmlFor="su-email">Work email</label>
+              <input id="su-email" className="finp" type="email" placeholder="you@example.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                autoComplete="email" required />
+            </div>
+            <div className="fld" style={{ marginBottom: '28px' }}>
+              <label className="flbl" htmlFor="su-pw">Password</label>
+              <input id="su-pw" className="finp" type="password" placeholder="8+ characters"
+                value={password} onChange={e => setPassword(e.target.value)}
+                autoComplete="new-password" required />
+            </div>
+            <button className="btn btn-amber btn-pill" style={{ width: '100%' }}
+              type="submit" disabled={loading}>
+              {loading ? 'Creating account…' : 'Create account'}
+            </button>
+          </form>
 
-        <p style={{ marginTop: '16px', fontSize: '12px', color: 'var(--c-400)', textAlign: 'center', lineHeight: '1.6' }}>
-          By creating an account you agree to our{' '}
-          <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Terms of Service</span>
-          {' '}and{' '}
-          <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
-        </p>
-        <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--c-400)' }}>
-          Already have an account?{' '}
-          <span style={{ color: 'var(--amber)', fontWeight: 600, cursor: 'pointer' }}
-            onClick={() => go('signin')}>Sign in →</span>
-        </p>
+          <p className="auth-meta" style={{ marginTop: '16px', textAlign: 'center', lineHeight: '1.6', fontSize: '12px' }}>
+            By creating an account you agree to our{' '}
+            <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Terms of Service</span>
+            {' '}and{' '}
+            <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
+          </p>
+          <p className="auth-meta" style={{ marginTop: '16px', textAlign: 'center' }}>
+            Already have an account?{' '}
+            <span onClick={() => go('signin')}>Sign in →</span>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -1099,46 +1226,51 @@ function SignInPage({ go, toast }) {
   };
 
   return (
-    <div className="signin-pg">
-      <div className="signin-card">
-        <img src="logo-transparent.png" alt="Vulcan Quanta"
-          style={{ height: '48px', marginBottom: '32px', cursor: 'pointer', display: 'block' }}
-          onClick={() => go('landing')} />
-        <h1 className="signin-h">Sign in</h1>
-        <p className="signin-sub" style={{ marginBottom: '28px' }}>Welcome back.</p>
-
-        {error && <div className="auth-err" role="alert">{error}</div>}
-
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="fld" style={{ marginBottom: '16px' }}>
-            <label className="flbl" htmlFor="si-email">Email address</label>
-            <input id="si-email" className="finp" type="email" placeholder="you@example.com"
-              value={email} onChange={e => setEmail(e.target.value)}
-              autoComplete="email" required autoFocus />
-          </div>
-          <div className="fld" style={{ marginBottom: '28px' }}>
-            <label className="flbl" htmlFor="si-pw">Password</label>
-            <input id="si-pw" className="finp" type="password" placeholder="••••••••"
-              value={password} onChange={e => setPassword(e.target.value)}
-              autoComplete="current-password" required />
-          </div>
-          <button className="btn btn-amber btn-pill" style={{ width: '100%' }}
-            type="submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', fontSize: '13px' }}>
-          <span style={{ color: 'var(--blue)', cursor: 'pointer' }}
-            onClick={() => go('landing')}>← Home</span>
-          <span style={{ color: 'var(--blue)', cursor: 'pointer' }}
-            onClick={() => go('forgotpassword')}>Forgot password?</span>
+    <div className="auth-pg">
+      <div className="auth-panel">
+        <AuthBlueprint />
+        <div className="auth-panel-scan" />
+        <div className="auth-panel-foot">
+          <p>From drawing to priced BoQ.<br /><strong>In under 2 minutes.</strong></p>
         </div>
-        <p style={{ marginTop: '20px', textAlign: 'center', fontSize: '13px', color: 'var(--c-400)' }}>
-          No account?{' '}
-          <span style={{ color: 'var(--amber)', fontWeight: 600, cursor: 'pointer' }}
-            onClick={() => go('signup')}>Start free →</span>
-        </p>
+      </div>
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <img src="logo-transparent.png" alt="Vulcan Quanta" className="auth-logo"
+               onClick={() => go('landing')} />
+          <h1 className="signin-h">Welcome back.</h1>
+          <p className="signin-sub" style={{ marginBottom: '28px' }}>Sign in to your account.</p>
+
+          {error && <div className="auth-err" role="alert">{error}</div>}
+
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="fld" style={{ marginBottom: '16px' }}>
+              <label className="flbl" htmlFor="si-email">Email address</label>
+              <input id="si-email" className="finp" type="email" placeholder="you@example.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                autoComplete="email" required autoFocus />
+            </div>
+            <div className="fld" style={{ marginBottom: '28px' }}>
+              <label className="flbl" htmlFor="si-pw">Password</label>
+              <input id="si-pw" className="finp" type="password" placeholder="••••••••"
+                value={password} onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password" required />
+            </div>
+            <button className="btn btn-amber btn-pill" style={{ width: '100%' }}
+              type="submit" disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+            <span className="auth-meta"><span onClick={() => go('landing')}>← Home</span></span>
+            <span className="auth-meta"><span onClick={() => go('forgotpassword')}>Forgot password?</span></span>
+          </div>
+          <p className="auth-meta" style={{ marginTop: '20px', textAlign: 'center' }}>
+            No account?{' '}
+            <span onClick={() => go('signup')}>Start free →</span>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -1177,27 +1309,26 @@ function ForgotPasswordPage({ go, toast }) {
 
   if (sent) {
     return (
-      <div className="signin-pg">
-        <div className="signin-card" style={{ textAlign: 'center' }}>
-          <img src="logo-transparent.png" alt="Vulcan Quanta"
-            style={{ height: '48px', marginBottom: '32px', display: 'block', margin: '0 auto 32px' }} />
-          <div style={{ width: '64px', height: '64px', background: 'rgba(249,115,22,0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '28px' }}>
+      <div className="auth-center-pg">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <img src="logo-transparent.png" alt="Vulcan Quanta" className="auth-logo"
+               style={{ display: 'block', margin: '0 auto 32px' }} />
+          <div style={{ width: '64px', height: '64px', background: 'rgba(249,115,22,0.10)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '28px' }}>
             ✉️
           </div>
           <h1 className="signin-h" style={{ marginBottom: '12px' }}>Check your inbox</h1>
-          <p style={{ color: 'var(--c-500)', fontSize: '15px', lineHeight: '1.65', marginBottom: '8px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.42)', fontSize: '15px', lineHeight: '1.65', marginBottom: '8px' }}>
             We sent a reset link to
           </p>
-          <p style={{ fontWeight: 700, color: 'var(--c-950)', fontSize: '15px', marginBottom: '24px', wordBreak: 'break-word' }}>
+          <p style={{ fontWeight: 700, color: '#fff', fontSize: '15px', marginBottom: '24px', wordBreak: 'break-word' }}>
             {email}
           </p>
-          <p style={{ color: 'var(--c-500)', fontSize: '14px', lineHeight: '1.65', marginBottom: '28px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.36)', fontSize: '14px', lineHeight: '1.65', marginBottom: '28px' }}>
             Click the link in the email to choose a new password. The link expires in 1 hour.
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--c-400)', marginBottom: '28px' }}>
+          <p className="auth-meta" style={{ marginBottom: '28px' }}>
             Didn't receive it? Check your spam folder, or{' '}
-            <span style={{ color: 'var(--amber)', cursor: 'pointer', fontWeight: 600 }}
-              onClick={() => { setSent(false); setEmail(''); }}>try again</span>.
+            <span onClick={() => { setSent(false); setEmail(''); }}>try again</span>.
           </p>
           <button className="btn btn-outline btn-pill" style={{ width: '100%' }}
             onClick={() => go('signin')}>← Back to sign in</button>
@@ -1207,34 +1338,41 @@ function ForgotPasswordPage({ go, toast }) {
   }
 
   return (
-    <div className="signin-pg">
-      <div className="signin-card">
-        <img src="logo-transparent.png" alt="Vulcan Quanta"
-          style={{ height: '48px', marginBottom: '32px', cursor: 'pointer', display: 'block' }}
-          onClick={() => go('landing')} />
-        <h1 className="signin-h">Reset your password</h1>
-        <p className="signin-sub" style={{ marginBottom: '28px' }}>
-          Enter your account email and we'll send a reset link.
-        </p>
+    <div className="auth-pg">
+      <div className="auth-panel">
+        <AuthBlueprint />
+        <div className="auth-panel-scan" />
+        <div className="auth-panel-foot">
+          <p>From drawing to priced BoQ.<br /><strong>In under 2 minutes.</strong></p>
+        </div>
+      </div>
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <img src="logo-transparent.png" alt="Vulcan Quanta" className="auth-logo"
+               onClick={() => go('landing')} />
+          <h1 className="signin-h">Reset your password</h1>
+          <p className="signin-sub" style={{ marginBottom: '28px' }}>
+            Enter your account email and we'll send a reset link.
+          </p>
 
-        {error && <div className="auth-err" role="alert">{error}</div>}
+          {error && <div className="auth-err" role="alert">{error}</div>}
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="fld" style={{ marginBottom: '28px' }}>
-            <label className="flbl" htmlFor="fp-email">Email address</label>
-            <input id="fp-email" className="finp" type="email" placeholder="you@example.com"
-              value={email} onChange={e => setEmail(e.target.value)}
-              autoComplete="email" required autoFocus />
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="fld" style={{ marginBottom: '28px' }}>
+              <label className="flbl" htmlFor="fp-email">Email address</label>
+              <input id="fp-email" className="finp" type="email" placeholder="you@example.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                autoComplete="email" required autoFocus />
+            </div>
+            <button className="btn btn-amber btn-pill" style={{ width: '100%' }}
+              type="submit" disabled={loading}>
+              {loading ? 'Sending reset link…' : 'Send reset link'}
+            </button>
+          </form>
+
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <span className="auth-meta"><span onClick={() => go('signin')}>← Back to sign in</span></span>
           </div>
-          <button className="btn btn-amber btn-pill" style={{ width: '100%' }}
-            type="submit" disabled={loading}>
-            {loading ? 'Sending reset link…' : 'Send reset link'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <span style={{ color: 'var(--blue)', fontSize: '13px', cursor: 'pointer' }}
-            onClick={() => go('signin')}>← Back to sign in</span>
         </div>
       </div>
     </div>
@@ -1268,33 +1406,33 @@ function CheckEmailPage({ go, toast, email }) {
   };
 
   return (
-    <div className="signin-pg">
-      <div className="signin-card" style={{ textAlign: 'center' }}>
-        <img src="logo-transparent.png" alt="Vulcan Quanta"
-          style={{ height: '48px', marginBottom: '32px', display: 'block', margin: '0 auto 32px' }} />
-        <div style={{ width: '64px', height: '64px', background: 'rgba(249,115,22,0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '28px' }}>
+    <div className="auth-center-pg">
+      <div className="auth-card" style={{ textAlign: 'center' }}>
+        <img src="logo-transparent.png" alt="Vulcan Quanta" className="auth-logo"
+             style={{ display: 'block', margin: '0 auto 32px' }} />
+        <div style={{ width: '64px', height: '64px', background: 'rgba(249,115,22,0.10)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '28px' }}>
           ✉️
         </div>
         <h1 className="signin-h" style={{ marginBottom: '12px' }}>Verify your email</h1>
         {email
-          ? <p style={{ color: 'var(--c-500)', fontSize: '15px', lineHeight: '1.65', marginBottom: '8px' }}>
+          ? <p style={{ color: 'rgba(255,255,255,0.42)', fontSize: '15px', lineHeight: '1.65', marginBottom: '8px' }}>
               We sent a verification link to
             </p>
           : null
         }
         {email && (
-          <p style={{ fontWeight: 700, color: 'var(--c-950)', fontSize: '15px', marginBottom: '24px', wordBreak: 'break-word' }}>
+          <p style={{ fontWeight: 700, color: '#fff', fontSize: '15px', marginBottom: '24px', wordBreak: 'break-word' }}>
             {email}
           </p>
         )}
         {!email && (
-          <p style={{ color: 'var(--c-500)', fontSize: '15px', lineHeight: '1.65', marginBottom: '24px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.42)', fontSize: '15px', lineHeight: '1.65', marginBottom: '24px' }}>
             Check your inbox for a verification link and click it to activate your account.
           </p>
         )}
 
-        <div style={{ background: 'var(--c-50)', border: '1px solid var(--c-200)', borderRadius: '10px', padding: '16px 20px', marginBottom: '28px', fontSize: '14px', color: 'var(--c-600)', lineHeight: '1.65', textAlign: 'left' }}>
-          <strong style={{ color: 'var(--c-950)' }}>Tip:</strong> Check your spam or junk folder if the email doesn't arrive within a few minutes.
+        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '10px', padding: '16px 20px', marginBottom: '28px', fontSize: '14px', color: 'rgba(255,255,255,0.38)', lineHeight: '1.65', textAlign: 'left' }}>
+          <strong style={{ color: 'rgba(255,255,255,0.70)' }}>Tip:</strong> Check your spam or junk folder if the email doesn't arrive within a few minutes.
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1304,10 +1442,9 @@ function CheckEmailPage({ go, toast, email }) {
               {resent ? '✓ Email sent again' : resending ? 'Sending…' : 'Resend verification email'}
             </button>
           )}
-          <p style={{ fontSize: '13px', color: 'var(--c-400)', marginTop: '4px' }}>
+          <p className="auth-meta" style={{ marginTop: '4px' }}>
             Already verified?{' '}
-            <span style={{ color: 'var(--amber)', fontWeight: 600, cursor: 'pointer' }}
-              onClick={() => go('signin')}>Sign in →</span>
+            <span onClick={() => go('signin')}>Sign in →</span>
           </p>
         </div>
       </div>
@@ -1358,15 +1495,15 @@ function ResetPasswordPage({ go, toast }) {
 
   if (done) {
     return (
-      <div className="signin-pg">
-        <div className="signin-card" style={{ textAlign: 'center' }}>
-          <img src="logo-transparent.png" alt="Vulcan Quanta"
-            style={{ height: '48px', marginBottom: '32px', display: 'block', margin: '0 auto 32px' }} />
-          <div style={{ width: '64px', height: '64px', background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '28px', color: 'var(--green)', fontWeight: 800 }}>
+      <div className="auth-center-pg">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <img src="logo-transparent.png" alt="Vulcan Quanta" className="auth-logo"
+               style={{ display: 'block', margin: '0 auto 32px' }} />
+          <div style={{ width: '64px', height: '64px', background: 'rgba(16,185,129,0.10)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '28px', color: 'var(--green)', fontWeight: 800 }}>
             ✓
           </div>
           <h1 className="signin-h" style={{ marginBottom: '12px' }}>Password updated</h1>
-          <p style={{ color: 'var(--c-500)', fontSize: '15px', lineHeight: '1.65', marginBottom: '32px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.42)', fontSize: '15px', lineHeight: '1.65', marginBottom: '32px' }}>
             Your password has been changed. Redirecting you to sign in&hellip;
           </p>
           <button className="btn btn-amber btn-pill" style={{ width: '100%' }}
@@ -1377,11 +1514,10 @@ function ResetPasswordPage({ go, toast }) {
   }
 
   return (
-    <div className="signin-pg">
-      <div className="signin-card">
-        <img src="logo-transparent.png" alt="Vulcan Quanta"
-          style={{ height: '48px', marginBottom: '32px', cursor: 'pointer', display: 'block' }}
-          onClick={() => go('landing')} />
+    <div className="auth-center-pg">
+      <div className="auth-card">
+        <img src="logo-transparent.png" alt="Vulcan Quanta" className="auth-logo"
+             onClick={() => go('landing')} />
         <h1 className="signin-h">Set a new password</h1>
         <p className="signin-sub" style={{ marginBottom: '28px' }}>Choose a strong password for your account.</p>
 
@@ -1404,7 +1540,7 @@ function ResetPasswordPage({ go, toast }) {
               value={confirm} onChange={e => setConfirm(e.target.value)}
               autoComplete="new-password" required />
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--c-500)', cursor: 'pointer', marginBottom: '28px', userSelect: 'none' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.40)', cursor: 'pointer', marginBottom: '28px', userSelect: 'none' }}>
             <input type="checkbox" checked={showPw} onChange={e => setShowPw(e.target.checked)} />
             Show password
           </label>
