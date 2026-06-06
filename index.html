@@ -9,6 +9,9 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <!-- Supabase CDN (UMD) — must load before lib/supabase.js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- GSAP + ScrollTrigger for cinematic scroll animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <!-- Auth layer — regular scripts, execute before Babel processes JSX -->
   <script src="lib/supabase.js"></script>
   <script src="lib/auth.js"></script>
@@ -22,7 +25,7 @@
   <style>
     /* ── RESET ────────────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: auto; }
     img, video { display: block; max-width: 100%; }
 
     /* ── TOKENS ──────────────────────────────────────────────────────────────── */
@@ -484,6 +487,408 @@
       .res-controls { flex-wrap: wrap; }
       .signin-card { padding: 32px 24px; }
     }
+
+    /* ─────────────────────────────────────────────────────────────────────────────
+       CINEMATIC LANDING — transparent header + full-bleed video hero
+    ───────────────────────────────────────────────────────────────────────────── */
+
+    /* Header overrides when on landing page */
+    body.is-landing .hdr {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom-color: transparent;
+      transition: background 0.4s ease, backdrop-filter 0.4s ease, border-color 0.4s ease;
+    }
+    body.is-landing .hdr.hdr-scrolled {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom-color: rgba(255,255,255,0.06);
+    }
+
+    /* ── VIDEO PIN WRAP ─────────────────────────────────────────────────────── */
+    .cin-pin-wrap { position: relative; height: 600vh; }
+
+    .cin-sticky {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: #080706;
+    }
+
+    .cin-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .cin-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.5) 0%,
+        rgba(0,0,0,0.08) 28%,
+        rgba(0,0,0,0.12) 56%,
+        rgba(0,0,0,0.72) 100%
+      );
+    }
+
+    /* Content layers — all stacked absolutely, each phase controls opacity */
+    .cin-content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 var(--px) 8vh;
+      pointer-events: none;
+    }
+    .cin-content .btn { pointer-events: auto; }
+
+    .cin-phase2 { opacity: 0; }
+    .cin-logo-reveal {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ── VIDEO TEXT TYPOGRAPHY ─────────────────────────────────────────────── */
+    .cin-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 22px;
+    }
+    .cin-h1 {
+      font-family: var(--font-d);
+      font-size: clamp(36px, 5.5vw, 78px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      max-width: 820px;
+      margin-bottom: 36px;
+    }
+    .cin-hero-note {
+      margin-top: 18px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.04em;
+    }
+    .cin-h2 {
+      font-family: var(--font-d);
+      font-size: clamp(30px, 4.5vw, 66px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      margin-bottom: 18px;
+    }
+    .cin-phase2-sub {
+      font-size: 18px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.65;
+      max-width: 460px;
+    }
+
+    /* Logo reveal */
+    .cin-logo-img {
+      height: 110px;
+      filter: drop-shadow(0 0 48px rgba(249,115,22,0.25)) brightness(1.06);
+    }
+    .cin-logo-tagline {
+      margin-top: 22px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* Scroll hint */
+    .cin-scroll-hint {
+      position: absolute;
+      bottom: 38px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,0.3);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .cin-scroll-line {
+      width: 1px;
+      height: 44px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.45), transparent);
+      animation: cin-scroll-pulse 2.2s ease-in-out infinite;
+    }
+    @keyframes cin-scroll-pulse {
+      0%, 100% { opacity: 0.35; transform: scaleY(1); }
+      50% { opacity: 0.9; transform: scaleY(1.08); }
+    }
+
+    /* ── SHARED CINEMATIC SECTION PRIMITIVES ────────────────────────────────── */
+    .cin-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+    .cin-section-label-dk { /* same but used on light backgrounds */
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+    .cin-section-h {
+      font-family: var(--font-d);
+      font-size: clamp(28px, 3.5vw, 52px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    .cin-section-h-lt {
+      font-family: var(--font-d);
+      font-size: clamp(28px, 3.5vw, 52px);
+      font-weight: 700;
+      color: var(--c-950);
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+
+    /* ── 2. EDITORIAL STATEMENT ────────────────────────────────────────────── */
+    .cin-statement { background: #0B0B0B; padding: 128px 0; }
+    .cin-statement-text {
+      font-family: var(--font-d);
+      font-size: clamp(26px, 3.2vw, 50px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      max-width: 860px;
+      margin-top: 20px;
+    }
+
+    /* ── 3. PROCESS ─────────────────────────────────────────────────────────── */
+    .cin-process { background: #111213; padding: 128px 0; }
+    .cin-process-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .cin-process-item {
+      padding: 52px 44px;
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+    .cin-process-item:last-child { border-right: none; }
+    .cin-process-num {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: var(--amber);
+      margin-bottom: 30px;
+    }
+    .cin-process-title {
+      font-family: var(--font-d);
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .cin-process-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.38);
+      line-height: 1.78;
+    }
+
+    /* ── 4. PRODUCT SPLIT ───────────────────────────────────────────────────── */
+    .cin-split { padding: 128px 0; background: #F9F9F9; }
+    .cin-split-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 var(--px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 96px;
+      align-items: center;
+    }
+    .cin-split-sub {
+      font-size: 16px;
+      color: var(--c-500);
+      line-height: 1.78;
+      margin-top: 16px;
+      max-width: 380px;
+    }
+
+    /* ── 5. FEATURES ────────────────────────────────────────────────────────── */
+    .cin-features { padding: 128px 0; background: #fff; }
+    .cin-feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--c-200);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .cin-feat-item {
+      padding: 44px 40px;
+      border-right: 1px solid var(--c-200);
+      border-bottom: 1px solid var(--c-200);
+      transition: background 0.2s ease;
+    }
+    .cin-feat-item:nth-child(3n) { border-right: none; }
+    .cin-feat-item:nth-child(n+4) { border-bottom: none; }
+    .cin-feat-item:hover { background: var(--c-50); }
+    .cin-feat-name {
+      font-family: var(--font-d);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--c-950);
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+    .cin-feat-desc { font-size: 14px; color: var(--c-500); line-height: 1.72; }
+
+    /* ── 6. PROOF / TRUST ───────────────────────────────────────────────────── */
+    .cin-proof { padding: 128px 0; background: #0B0B0B; }
+    .cin-proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 80px;
+    }
+    .cin-proof-item {
+      padding: 44px 40px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .cin-proof-item:nth-child(3n) { border-right: none; }
+    .cin-proof-item:nth-child(n+4) { border-bottom: none; }
+    .cin-proof-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.22);
+      margin-bottom: 18px;
+    }
+    .cin-proof-claim {
+      font-family: var(--font-d);
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+    .cin-proof-note { font-size: 13px; color: rgba(255,255,255,0.33); line-height: 1.72; }
+
+    /* ── 7. PRICING ─────────────────────────────────────────────────────────── */
+    .cin-pricing { padding: 128px 0; background: var(--c-50); }
+    .cin-pricing-sub { font-size: 17px; color: var(--c-500); margin-top: 14px; }
+
+    /* ── 8. FAQ ─────────────────────────────────────────────────────────────── */
+    .cin-faq { padding: 128px 0; background: #fff; }
+
+    /* ── 9. FINAL CTA ───────────────────────────────────────────────────────── */
+    .cin-cta {
+      background: #080706;
+      padding: 160px 0;
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .cin-cta-h {
+      font-family: var(--font-d);
+      font-size: clamp(36px, 5.5vw, 78px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+    .cin-cta-sub {
+      font-family: var(--font-d);
+      font-size: clamp(30px, 4.2vw, 62px);
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 52px;
+    }
+    .cin-cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-ghost-lt {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.55);
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 100px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost-lt:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.85); }
+
+    /* ── CINEMATIC MOBILE ───────────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .cin-pin-wrap { height: 500vh; }
+      .cin-split-inner { grid-template-columns: 1fr; gap: 56px; }
+      .cin-process-grid { grid-template-columns: 1fr; }
+      .cin-process-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+      .cin-process-item:last-child { border-bottom: none; }
+      .cin-proof-grid { grid-template-columns: 1fr 1fr; }
+      .cin-proof-item:nth-child(3n) { border-right: 1px solid rgba(255,255,255,0.06); }
+      .cin-proof-item:nth-child(2n) { border-right: none; }
+      .cin-feat-grid { grid-template-columns: repeat(2, 1fr); }
+      .cin-feat-item:nth-child(3n) { border-right: 1px solid var(--c-200); }
+      .cin-feat-item:nth-child(2n) { border-right: none; }
+      .cin-feat-item:nth-child(n+5) { border-bottom: none; }
+      .cin-feat-item:nth-child(n+4) { border-bottom: 1px solid var(--c-200); }
+    }
+    @media (max-width: 768px) {
+      .cin-pin-wrap { height: 450vh; }
+      .cin-h1 { font-size: 34px; }
+      .cin-h2 { font-size: 28px; }
+      .cin-logo-img { height: 80px; }
+      .cin-content { padding: 0 var(--px) 12vh; }
+      .cin-proof-grid { grid-template-columns: 1fr; }
+      .cin-proof-item { border-right: none !important; }
+      .cin-feat-grid { grid-template-columns: 1fr; }
+      .cin-feat-item { border-right: none !important; }
+      .cin-statement, .cin-process, .cin-split, .cin-features,
+      .cin-proof, .cin-pricing, .cin-faq, .cin-cta { padding: 80px 0; }
+    }
   </style>
 </head>
 <body>
@@ -524,6 +929,23 @@ function App() {
     document.documentElement.style.setProperty('--amber', c);
     document.documentElement.style.setProperty('--amber-d', t.accent === 'blue' ? '#1D4ED8' : '#EA6C0A');
   }, [t.accent]);
+
+  // ── Landing page body class + scrolled header ──────────────────────────────────
+  useEffect(() => {
+    const isLanding = page === 'landing';
+    document.body.classList.toggle('is-landing', isLanding);
+    if (!isLanding) {
+      const hdr = document.querySelector('.hdr');
+      if (hdr) hdr.classList.remove('hdr-scrolled');
+      return;
+    }
+    const hdr = document.querySelector('.hdr');
+    const onScroll = () => {
+      if (hdr) hdr.classList.toggle('hdr-scrolled', window.scrollY > window.innerHeight * 0.6);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [page]);
 
   // ── Supabase auth state subscription ───────────────────────────────────────────────
   // Fires INITIAL_SESSION on mount (sets user + clears authLoading),
