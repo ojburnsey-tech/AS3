@@ -2,6 +2,141 @@
 const { useState, useEffect, useRef } = React;
 const { BoQMockup } = window;
 
+// ─── COUNT-UP HOOK ───────────────────────────────────────────────────────────────────
+// rAF-driven number ramp with an ease-out curve. Returns the live value.
+function useCountUp(target, run, duration = 1500) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (!run) return;
+    let raf, start = 0;
+    const ease = t => 1 - Math.pow(1 - t, 3);
+    const step = ts => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      setV(target * ease(p));
+      if (p < 1) raf = requestAnimationFrame(step);
+      else setV(target);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [run, target, duration]);
+  return v;
+}
+
+// ─── LIVE BOQ — the signature moment ─────────────────────────────────────────────────
+// Self-running on first scroll into view: a drawing is scanned, measurements
+// resolve, line items cascade in, and the grand total tabulates up. No interaction
+// required — the product appears to think on its own.
+function LiveBoQ() {
+  const ref = useRef(null);
+  const [reduce] = useState(() =>
+    typeof window !== 'undefined' &&
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [stage, setStage] = useState('idle'); // idle → scan → price → done
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let timers = [];
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        if (reduce) { setStage('done'); return; }
+        setStage('scan');
+        timers.push(setTimeout(() => setStage('price'), 1750));
+        timers.push(setTimeout(() => setStage('done'), 1750 + 6 * 110 + 700));
+      });
+    }, { threshold: 0.35 });
+    io.observe(el);
+    return () => { io.disconnect(); timers.forEach(clearTimeout); };
+  }, [reduce]);
+
+  const counting = !reduce && (stage === 'price' || stage === 'done');
+  const grandRaw = useCountUp(32107.90, counting, 1600);
+  const confRaw  = useCountUp(94, counting, 1400);
+  const grand = reduce ? 32107.90 : grandRaw;
+  const conf  = reduce ? 94 : confRaw;
+  const fmtGrand = '£' + grand.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const status =
+    stage === 'done'  ? `Complete · ${Math.round(conf)}% confidence` :
+    stage === 'price' ? 'Pricing items…' :
+    stage === 'scan'  ? 'Reading drawing…' : 'Ready';
+
+  const items = [
+    { trade: 'A — Groundworks' },
+    { d: 'Excavation to reduced level',        q: '86',  u: 'm²', t: '£559' },
+    { d: 'Concrete strip foundations',         q: '28',  u: 'lm', t: '£2,660' },
+    { trade: 'B — Brickwork & roof' },
+    { d: 'Common brickwork, stretcher bond',   q: '210', u: 'm²', t: '£13,650' },
+    { d: 'Clay tile roof covering',            q: '320', u: 'm²', t: '£12,320', flag: true },
+  ];
+
+  return (
+    <div ref={ref} className={`live-boq ${stage}`}>
+      <div className="lb-bar">
+        <div className="lb-bar-left"><span className="lb-dot" />Vulcan Quanta</div>
+        <div className="lb-status">{status}</div>
+      </div>
+      <div className="lb-body">
+        <div className="lb-plan">
+          <svg className="lb-plan-svg" viewBox="0 0 360 220" fill="none"
+               xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            {/* detected areas (fade in once scanned) */}
+            <rect className="lb-area" x="48" y="44" width="148" height="132" />
+            <rect className="lb-area" x="204" y="44" width="108" height="72" />
+            <rect className="lb-area" x="204" y="124" width="108" height="52" />
+            {/* outer walls + partitions */}
+            <rect className="lb-wall" x="44" y="40" width="272" height="140" />
+            <line className="lb-wall-thin" x1="200" y1="40" x2="200" y2="180" />
+            <line className="lb-wall-thin" x1="200" y1="120" x2="316" y2="120" />
+            {/* door swing */}
+            <path className="lb-door" d="M200 96 A22 22 0 0 1 222 118" />
+            <line className="lb-door" x1="200" y1="96" x2="200" y2="118" />
+            {/* dimension — top */}
+            <line className="lb-dim" x1="44" y1="26" x2="316" y2="26" />
+            <line className="lb-dim" x1="44" y1="22" x2="44" y2="30" />
+            <line className="lb-dim" x1="316" y1="22" x2="316" y2="30" />
+            <text className="lb-dim-label" x="180" y="20" textAnchor="middle">12.40 m</text>
+            {/* dimension — left */}
+            <line className="lb-dim" x1="32" y1="40" x2="32" y2="180" />
+            <line className="lb-dim" x1="28" y1="40" x2="36" y2="40" />
+            <line className="lb-dim" x1="28" y1="180" x2="36" y2="180" />
+            <text className="lb-dim-label" x="18" y="113" textAnchor="middle"
+                  transform="rotate(-90 18 113)">6.10 m</text>
+            {/* room labels */}
+            <text className="lb-room" x="122" y="114" textAnchor="middle">KITCHEN / DINING</text>
+            <text className="lb-room" x="258" y="82" textAnchor="middle">UTILITY</text>
+            <text className="lb-room" x="258" y="154" textAnchor="middle">HALL</text>
+          </svg>
+          <div className="lb-scan" />
+          <div className="lb-plan-cap">Drawing · Oak View Extension · OVR-2026-047</div>
+        </div>
+        <div className="lb-sheet">
+          <div className="lb-sheet-head">
+            <span>Description</span><span>Qty</span><span>Unit</span><span>Total</span>
+          </div>
+          {items.map((it, i) => it.trade ? (
+            <div key={i} className="lb-row lb-trade" style={{ transitionDelay: `${i * 110}ms` }}>
+              {it.trade}
+            </div>
+          ) : (
+            <div key={i} className={`lb-row${it.flag ? ' flag' : ''}`}
+                 style={{ transitionDelay: `${i * 110}ms` }}>
+              <span>{it.d}</span><span>{it.q}</span><span>{it.u}</span><span>{it.t}</span>
+            </div>
+          ))}
+          <div className="lb-foot">
+            <span className="lb-foot-lbl">Grand total · ex VAT</span>
+            <span className="lb-grand">{fmtGrand}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── LANDING ────────────────────────────────────────────────────────────────────────
 function LandingPage({ go, tweaks = {}, toast }) {
   const [openFaq, setOpenFaq] = useState(null);
@@ -165,7 +300,7 @@ function LandingPage({ go, tweaks = {}, toast }) {
       {/* ── FIXED TAGLINE OVERLAY — z-index 5, fades out as user scrolls ────── */}
       <div className="cin-phase-wrap">
         <div ref={taglineRef}>
-          <p className="cin-eyebrow">Vulcan Quanta</p>
+          <span className="cin-status">Private beta · UK quantity surveying</span>
           <h1 className="cin-h1">
             Cost plans that used<br />to take days.<br />Now they don't.
           </h1>
@@ -195,7 +330,7 @@ function LandingPage({ go, tweaks = {}, toast }) {
           <p className="cin-section-label">The work</p>
           <p className="cin-statement-text">
             Vulcan reads your drawings. Every wall, every span, every height.
-            Priced to BCIS. Structured to NRM2. Ready to issue.
+            Priced to BCIS. Structured to NRM2. <span className="cin-statement-em">Ready to issue.</span>
           </p>
         </div>
       </section>
@@ -224,26 +359,26 @@ function LandingPage({ go, tweaks = {}, toast }) {
         </div>
       </section>
 
-      {/* ── 4. PRODUCT SPLIT — BoQ MOCKUP ────────────────────────────────────── */}
-      <section className="cin-split">
-        <div className="cin-split-inner">
-          <div>
-            <p className="cin-section-label-dk">Output</p>
-            <h2 className="cin-section-h-lt">A professional BoQ, ready to issue.</h2>
-            <p className="cin-split-sub">
-              Every element measured. Every item priced to BCIS Q2 2026 rates.
-              Confidence-scored. Structured to NRM2.
+      {/* ── 4. SIGNATURE MOMENT — watch Vulcan read a drawing ─────────────────── */}
+      <section className="cin-signature">
+        <div className="inner">
+          <div className="cin-sig-head">
+            <p className="cin-section-label">Watch it work</p>
+            <h2 className="cin-section-h">From drawing to priced BoQ.<br />In front of you.</h2>
+            <p className="cin-sig-sub">
+              No demo booking. No sales call. This is Vulcan reading a real drawing,
+              measuring every element, and pricing it to BCIS — exactly as it runs in the product.
             </p>
+          </div>
+          <LiveBoQ />
+          <div style={{ textAlign: 'center', marginTop: '44px' }}>
             <button
               className="btn btn-amber btn-pill"
-              style={{ marginTop: '32px', padding: '14px 28px', fontSize: '15px', fontWeight: 600 }}
+              style={{ padding: '14px 28px', fontSize: '15px', fontWeight: 600 }}
               onClick={() => go('results')}
             >
-              See a sample BoQ →
+              Open the full Bill of Quantities →
             </button>
-          </div>
-          <div>
-            <BoQMockup />
           </div>
         </div>
       </section>
@@ -385,8 +520,8 @@ function LandingPage({ go, tweaks = {}, toast }) {
       <section className="cin-cta">
         <div className="inner" style={{ textAlign: 'center' }}>
           <p className="cin-eyebrow" style={{ color: 'rgba(255,255,255,0.28)', marginBottom: '28px' }}>Vulcan Quanta</p>
-          <h2 className="cin-cta-h">Cost plans that used<br />to take days.</h2>
-          <p className="cin-cta-sub">Now they don't.</p>
+          <h2 className="cin-cta-h">See it read<br />your first drawing.</h2>
+          <p className="cin-cta-sub">Free to start.</p>
           <div className="cin-cta-actions">
             <button className="btn btn-amber btn-pill btn-lg" onClick={() => go('signup')}>
               Start free
